@@ -13,15 +13,23 @@ session as its prompt (plus "you're working in the jobs-lu repo") and it has eno
 context to start without reading this entire file or the prior conversation. Before
 starting a task:
 
-1. Check **File scope** — touch only those files/directories. If your task needs to
+1. Read **`docs/status/<letter>.md`** for the task (e.g. `docs/status/A.md` for Task A)
+   — that file, not this one, holds the live status/owner/dependency state. This file
+   (`APP_AUDIT.md`) only holds the task spec, which rarely changes, so it's safe for
+   several sessions to have open at once.
+2. A task is **ready to claim** only if its status file's `status` is `not_started`
+   (or `blocked` with the block since resolved) *and* every ID in `depends_on` points
+   to a status file whose `status: done`. If `depends_on` includes an `external:...`
+   entry, that one's resolved by a human, not another task file.
+3. Check **File scope** — touch only those files/directories. If your task needs to
    touch something outside its scope, stop and flag it rather than improvising.
-2. Check **Contested files** below — if your scope includes one, `git log -1 --
+4. Check **Contested files** below — if your scope includes one, `git log -1 --
    <file>` and `git diff` it first. If it has uncommitted or very recent changes not
    from you, coordinate (ask the human) before editing rather than assuming your view
    is current.
-3. Update the **Status**/**Owner** line when you start and finish, so a second agent
-   glancing at this file doesn't duplicate work.
-4. Build (`npm run build` in `functions/`, `ng build` at the repo root) before
+5. Claim the task immediately (see **Coordination protocol** below) before writing
+   any code, so a second agent scanning `docs/status/` doesn't start the same work.
+6. Build (`npm run build` in `functions/`, `ng build` at the repo root) before
    considering a task done. Don't deploy — that's a separate, human-approved step,
    and simultaneous deploys from parallel sessions is exactly the kind of conflict
    this doc exists to avoid.
@@ -47,17 +55,53 @@ touch them:
   edited (moving CV bullets to an admin UI / Firestore). If another task also wants
   to touch persona data, sequence it after Task A rather than in parallel.
 
-## Status legend
+## Coordination protocol (status lives in `docs/status/`, not here)
 
-`Not started` / `In progress (<owner>)` / `Blocked (<reason>)` / `Done (<commit>)`
+Status/owner/dependency state is deliberately kept **out of this file** and **out of
+one shared file entirely** — it's one small file per task under `docs/status/`
+(`A.md`…`F.md`). Two sessions updating *different* tasks then touch different files
+and can never merge-conflict with each other; two sessions updating the *same* task
+would still conflict, but that shouldn't happen if everyone claims before working
+(step 5 above).
+
+**Status file format** (`docs/status/<letter>.md`):
+
+```yaml
+---
+task: A
+title: <matches the ### Task heading in this file>
+status: not_started   # not_started | in_progress | blocked | done
+owner: null            # a name/session identifier, or null
+updated: 2026-08-28    # bump this on every edit
+depends_on: []          # other task letters, or "external:<description>"
+blocks: []              # task letters that name this one in their depends_on — informational, keep in sync manually
+---
+
+## Log
+(append-only — newest entry at the bottom)
+```
+
+**To claim a task:** confirm it's ready (see step 2 above), then edit only its status
+file: set `status: in_progress`, `owner: <you>`, bump `updated`, append a one-line log
+entry. That's a single small file — commit and push it immediately (a tiny, fast
+commit) so other sessions see the claim before you start writing code, rather than
+batching it with your eventual feature commit.
+
+**To finish:** set `status: done`, append a log line noting the commit hash, commit
+and push. If you get blocked (not by another task, but by something needing a human —
+a design decision, a missing credential, an ambiguous requirement): set
+`status: blocked`, log *why* in one line, and stop — don't guess past a real blocker.
+
+**To check what's workable right now:** read every file in `docs/status/`. A task is
+ready if `status` is `not_started` and everything in `depends_on` is `done` (or is an
+`external:` entry the human has separately confirmed is resolved).
 
 ---
 
 ### Task A: Replace placeholder CV content with a real editor
 
-**Status:** Not started
+**Live status:** `docs/status/A.md`
 **Priority:** 1 (highest-leverage fix in this doc)
-**Depends on:** nothing
 **File scope:** new callable under `functions/src/admin/` (e.g.
 `updatePersonaCvBulletsCallable.ts`), one additive export line in
 `functions/src/index.ts`, additive sections in `src/app/view/admin/admin.component.ts`
@@ -82,9 +126,8 @@ of the static config. No redeploy needed to update CV content going forward.
 
 ### Task B: Reminder digest for new matches and approaching deadlines
 
-**Status:** Not started
-**Priority:** 2
-**Depends on:** nothing (fully parallel-safe — new files only, one export line)
+**Live status:** `docs/status/B.md`
+**Priority:** 2 (fully parallel-safe — new files only, one export line)
 **File scope:** new `functions/src/notifications/` directory, one additive export
 line in `functions/src/index.ts`.
 
@@ -104,9 +147,9 @@ Needs a new secret for the email provider's API key, added the same way
 
 ### Task C: Rebuild the Moovijob ingestion source
 
-**Status:** Not started
+**Live status:** `docs/status/C.md` (currently `blocked` — external Apify actor
+rebuild, outside this repo)
 **Priority:** 3
-**Depends on:** external Apify actor rebuild (outside this repo)
 **File scope:** the separate Apify actor project at `apify-moovijob-scraper` (not in
 this repo), plus a one-line change in `functions/src/ingestion/fetchApifySource.ts`
 (`MOOVIJOB_ACTOR_ID` from `null` to the new actor ID) once the rebuilt actor is
@@ -126,10 +169,9 @@ verified with a real (not simulated) Apify run returning actual listings, not a 
 
 ### Task D: Test suite for compliance/matching/ingestion math
 
-**Status:** Not started
-**Priority:** 4 — not urgent today, highest-regret gap if skipped too long
-**Depends on:** nothing (fully parallel-safe — new test files only, zero production
-code changes)
+**Live status:** `docs/status/D.md`
+**Priority:** 4 — not urgent today, highest-regret gap if skipped too long. Fully
+parallel-safe: new test files only, zero production code changes.
 **File scope:** new test files only, colocated with the code under test (e.g.
 `functions/src/services/compliance.service.spec.ts` pattern, or a `functions/src/
 **/*.test.ts` convention — match whatever `functions/package.json`'s existing test
@@ -152,10 +194,9 @@ with coverage at minimum for: compliance threshold boundary values (49.9% exactl
 
 ### Task E: Single source of truth for the allowlist
 
-**Status:** Not started
-**Priority:** 5 (low; isolated, low-risk)
-**Depends on:** nothing, but not internally parallelizable — one person/session only,
-since all three files must change together atomically
+**Live status:** `docs/status/E.md`
+**Priority:** 5 (low; isolated, low-risk). Not internally parallelizable — one
+person/session only, since all three files must change together atomically.
 **File scope:** `functions/src/config/allowlist.ts`, `firestore.rules`,
 `storage.rules` — all three, in one change.
 
@@ -174,9 +215,8 @@ contested-files note above.
 
 ### Task F: Lazy-load routes to fix the bundle-size budget warning
 
-**Status:** Not started
-**Priority:** 6 (cosmetic; not urgent for a 2-user tool)
-**Depends on:** nothing, fully parallel-safe
+**Live status:** `docs/status/F.md`
+**Priority:** 6 (cosmetic; not urgent for a 2-user tool). Fully parallel-safe.
 **File scope:** `src/app/app.routes.ts` only (convert `component: X` entries to
 `loadComponent: () => import('./view/x/x.component').then(m => m.XComponent)` for
 routes other than the default dashboard).
