@@ -27,8 +27,63 @@
     </div>
   </header>
 
-  <div #board class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-paper/10">
-    <section>
+  <div class="flex items-center justify-between gap-6 px-6 py-3 border-b border-paper/10">
+    <div class="flex items-center gap-1">
+      <button
+        class="px-3 py-1 text-xs font-medium rounded-sm transition-colors"
+        [class.bg-gold]="viewMode() === 'both'"
+        [class.text-ink]="viewMode() === 'both'"
+        [class.text-paper]="viewMode() !== 'both'"
+        [class.opacity-50]="viewMode() !== 'both'"
+        (click)="setViewMode('both')"
+      >
+        Both
+      </button>
+      <button
+        class="px-3 py-1 text-xs font-medium rounded-sm transition-colors"
+        [class.bg-gold]="viewMode() === 'philip'"
+        [class.text-ink]="viewMode() === 'philip'"
+        [class.text-paper]="viewMode() !== 'philip'"
+        [class.opacity-50]="viewMode() !== 'philip'"
+        (click)="setViewMode('philip')"
+      >
+        Philip
+      </button>
+      <button
+        class="px-3 py-1 text-xs font-medium rounded-sm transition-colors"
+        [class.bg-gold]="viewMode() === 'chiara'"
+        [class.text-ink]="viewMode() === 'chiara'"
+        [class.text-paper]="viewMode() !== 'chiara'"
+        [class.opacity-50]="viewMode() !== 'chiara'"
+        (click)="setViewMode('chiara')"
+      >
+        Chiara
+      </button>
+    </div>
+
+    <label class="flex items-center gap-3 shrink-0">
+      <span class="text-xs text-paper/40 whitespace-nowrap">Min. match</span>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="5"
+        class="w-32 accent-gold"
+        [value]="minMatchScore()"
+        (input)="setMinMatchScore($any($event.target).value)"
+      />
+      <span class="num text-xs text-paper/70 w-9 text-right">{{ minMatchScore() }}%</span>
+    </label>
+  </div>
+
+  <div
+    #board
+    class="grid grid-cols-1 divide-y divide-paper/10"
+    [class.md:grid-cols-2]="viewMode() === 'both'"
+    [class.md:divide-x]="viewMode() === 'both'"
+    [class.md:divide-y-0]="viewMode() === 'both'"
+  >
+    <section *ngIf="viewMode() === 'both' || viewMode() === 'philip'">
       <ng-container *ngIf="philip$ | async as persona">
         <div class="px-6 py-4 border-b border-paper/10">
           <h2 class="font-display font-medium text-base text-paper">{{ persona.displayName }}</h2>
@@ -36,9 +91,9 @@
         </div>
       </ng-container>
 
-      <div *ngIf="philipVacancies$ | async as vacancies">
+      <div>
         <a
-          *ngFor="let job of vacancies"
+          *ngFor="let job of philipPageItems()"
           [routerLink]="jobDetailUrl(job.jobId)"
           class="flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
@@ -77,13 +132,34 @@
           </div>
         </a>
 
-        <p *ngIf="vacancies.length === 0" class="px-6 py-8 text-sm text-paper/30">
+        <p *ngIf="philipPageItems().length === 0" class="px-6 py-8 text-sm text-paper/30">
           No matched jobs yet.
         </p>
+
+        <div class="flex items-center justify-between px-6 py-3 border-t border-paper/10" *ngIf="philipTotalPages() > 1">
+          <button
+            class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+            [disabled]="philipPage() === 1"
+            (click)="setPhilipPage(philipPage() - 1)"
+          >
+            ← Prev
+          </button>
+          <span class="text-xs text-paper/40">
+            Page <span class="num text-paper/70">{{ philipPage() }}</span> of
+            <span class="num text-paper/70">{{ philipTotalPages() }}</span>
+          </span>
+          <button
+            class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+            [disabled]="philipPage() === philipTotalPages()"
+            (click)="setPhilipPage(philipPage() + 1)"
+          >
+            Next →
+          </button>
+        </div>
       </div>
     </section>
 
-    <section>
+    <section *ngIf="viewMode() === 'both' || viewMode() === 'chiara'">
       <ng-container *ngIf="chiara$ | async as persona">
         <div class="px-6 py-4 border-b border-paper/10">
           <h2 class="font-display font-medium text-base text-paper">{{ persona.displayName }}</h2>
@@ -91,9 +167,9 @@
         </div>
       </ng-container>
 
-      <div *ngIf="chiaraVacancies$ | async as vacancies">
+      <div>
         <a
-          *ngFor="let job of vacancies"
+          *ngFor="let job of chiaraPageItems()"
           [routerLink]="jobDetailUrl(job.jobId)"
           class="flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
@@ -132,9 +208,30 @@
           </div>
         </a>
 
-        <p *ngIf="vacancies.length === 0" class="px-6 py-8 text-sm text-paper/30">
+        <p *ngIf="chiaraPageItems().length === 0" class="px-6 py-8 text-sm text-paper/30">
           No matched jobs yet.
         </p>
+
+        <div class="flex items-center justify-between px-6 py-3 border-t border-paper/10" *ngIf="chiaraTotalPages() > 1">
+          <button
+            class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+            [disabled]="chiaraPage() === 1"
+            (click)="setChiaraPage(chiaraPage() - 1)"
+          >
+            ← Prev
+          </button>
+          <span class="text-xs text-paper/40">
+            Page <span class="num text-paper/70">{{ chiaraPage() }}</span> of
+            <span class="num text-paper/70">{{ chiaraTotalPages() }}</span>
+          </span>
+          <button
+            class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+            [disabled]="chiaraPage() === chiaraTotalPages()"
+            (click)="setChiaraPage(chiaraPage() + 1)"
+          >
+            Next →
+          </button>
+        </div>
       </div>
     </section>
   </div>

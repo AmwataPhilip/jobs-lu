@@ -11,6 +11,7 @@ interface IngestionResult {
   status: string;
   jobsFetched: number;
   jobsNew: number;
+  jobsRetried: number;
   jobsMatched: number;
   sourcesSkipped: { source: string; reason: string }[];
   errors: { source: string; message: string }[];

@@ -6,13 +6,14 @@ import { APIFY_SOURCES, fetchApifySource } from './fetchApifySource';
 import { extractEscoAndEmbed } from '../matching/extractEscoAndEmbed';
 import { scoreMatch } from '../matching/scoreMatch';
 
-const COLLECTIONS = { IngestionRuns: 'jobslu_ingestion_runs' };
+const COLLECTIONS = { IngestionRuns: 'jobslu_ingestion_runs', Vacancies: 'jobslu_vacancies' };
 
 interface IngestionRunResult {
   runId: string;
   status: 'success' | 'partial' | 'failed';
   jobsFetched: number;
   jobsNew: number;
+  jobsRetried: number;
   jobsMatched: number;
   sourcesSkipped: { source: string; reason: string }[];
   errors: { source: string; message: string }[];
@@ -54,6 +55,7 @@ export async function runIngestion(
     sourcesSkipped: [],
     jobsFetched: 0,
     jobsNew: 0,
+    jobsRetried: 0,
     jobsMatched: 0,
     errors: [],
     status: 'running',
@@ -94,9 +96,25 @@ export async function runIngestion(
     }
   }
 
+  // Re-ingesting a source treats an already-existing vacancy doc as "seen,
+  // skip" (see fetchEuresJobs.ts's existence pre-check) — so a job that
+  // failed extraction/matching once (a Gemini rate limit, a transient error)
+  // would otherwise stay at status:'new' forever, only ever fetched, never
+  // retried, and invisible on the dashboard (which only shows 'matched'/
+  // 'applied'). Sweep for anything still stuck at 'new' and retry it here
+  // alongside this run's genuinely new jobs.
+  const stalledSnap = await db
+    .collection(COLLECTIONS.Vacancies)
+    .where('status', '==', 'new')
+    .get();
+  const stalledJobIds = stalledSnap.docs
+    .map((doc) => doc.id)
+    .filter((jobId) => !newJobIds.includes(jobId));
+  const jobIdsToMatch = [...newJobIds, ...stalledJobIds];
+
   const MATCHING_CONCURRENCY = 5;
-  for (let i = 0; i < newJobIds.length; i += MATCHING_CONCURRENCY) {
-    const chunk = newJobIds.slice(i, i + MATCHING_CONCURRENCY);
+  for (let i = 0; i < jobIdsToMatch.length; i += MATCHING_CONCURRENCY) {
+    const chunk = jobIdsToMatch.slice(i, i + MATCHING_CONCURRENCY);
     await Promise.all(
       chunk.map(async (jobId) => {
         try {
@@ -121,6 +139,7 @@ export async function runIngestion(
     sourcesSkipped,
     jobsFetched,
     jobsNew,
+    jobsRetried: stalledJobIds.length,
     jobsMatched,
     errors,
     status,
@@ -131,10 +150,20 @@ export async function runIngestion(
     status,
     jobsFetched,
     jobsNew,
+    jobsRetried: stalledJobIds.length,
     jobsMatched,
     errorCount: errors.length,
     skippedCount: sourcesSkipped.length,
   });
 
-  return { runId, status, jobsFetched, jobsNew, jobsMatched, sourcesSkipped, errors };
+  return {
+    runId,
+    status,
+    jobsFetched,
+    jobsNew,
+    jobsRetried: stalledJobIds.length,
+    jobsMatched,
+    sourcesSkipped,
+    errors,
+  };
 }

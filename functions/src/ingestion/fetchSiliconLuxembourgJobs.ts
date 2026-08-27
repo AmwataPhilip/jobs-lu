@@ -74,58 +74,58 @@ export async function fetchSiliconLuxembourgJobs(
     }
   }
 
-  const newJobIds: string[] = [];
-  let fetched = 0;
+  // Listing hrefs carry the slug (and therefore jobId) without a detail
+  // fetch, so skip existing jobs before paying for one.
+  const candidates = jobUrls.map((jobUrl) => {
+    const slug = jobUrl.replace(/\/$/, '').split('/').pop() ?? jobUrl;
+    return { jobUrl, jobId: jobIdFromSlug(slug) };
+  });
+  const docRefs = candidates.map((c) => db.collection(COLLECTIONS.Vacancies).doc(c.jobId));
+  const existingDocs = docRefs.length > 0 ? await db.getAll(...docRefs) : [];
+  const existingIds = new Set(existingDocs.filter((d) => d.exists).map((d) => d.id));
+  const newCandidates = candidates.filter((c) => !existingIds.has(c.jobId));
 
-  for (const jobUrl of jobUrls) {
+  const newJobIds: string[] = [];
+
+  for (const { jobUrl, jobId } of newCandidates) {
     try {
       const detail = await fetchJobDetail(jobUrl);
       if (!detail) {
         continue;
       }
-      fetched++;
 
-      const slug = jobUrl.replace(/\/$/, '').split('/').pop() ?? jobUrl;
-      const jobId = jobIdFromSlug(slug);
-      const docRef = db.collection(COLLECTIONS.Vacancies).doc(jobId);
-      const existing = await docRef.get();
-
-      const sourceFields = {
+      const vacancy: Vacancy = {
         jobId,
-        source: 'SiliconLuxembourg' as const,
+        source: 'SiliconLuxembourg',
         externalId: jobUrl,
         title: detail.title,
         employer: detail.employer,
         // Silicon Luxembourg doesn't publish structured location data — the
         // publication is Luxembourg-focused, so country defaults to LU.
-        location: { country: 'LU', city: null },
+        location: { country: 'LU', city: null, allowsTelework: false, teleworkPercentageMax: 0 },
         rawDescription: detail.rawDescriptionHtml,
         estimatedSalary: null,
+        extractedSkills: [],
+        extractedSkillLabels: [],
+        shortageOccupationMatch: null,
+        matchedPersona: null,
+        matchScore: null,
         ingestedAt: FieldValue.serverTimestamp(),
         ingestionRunId: runId,
+        status: 'new',
       };
-
-      if (existing.exists) {
-        await docRef.set(sourceFields, { merge: true });
-      } else {
-        const vacancy: Vacancy = {
-          ...sourceFields,
-          location: { ...sourceFields.location, allowsTelework: false, teleworkPercentageMax: 0 },
-          extractedSkills: [],
-          extractedSkillLabels: [],
-          shortageOccupationMatch: null,
-          matchedPersona: null,
-          matchScore: null,
-          status: 'new',
-        };
-        await docRef.set(vacancy);
-        newJobIds.push(jobId);
-      }
+      await db.collection(COLLECTIONS.Vacancies).doc(jobId).set(vacancy);
+      newJobIds.push(jobId);
     } catch (error) {
       errors.push(`${jobUrl}: ${(error as Error).message}`);
     }
   }
 
-  logger.info('fetchSiliconLuxembourgJobs complete', { fetched, newJobs: newJobIds.length, errorCount: errors.length });
-  return { fetched, newJobIds, errors };
+  logger.info('fetchSiliconLuxembourgJobs complete', {
+    fetched: candidates.length,
+    skippedExisting: existingIds.size,
+    newJobs: newJobIds.length,
+    errorCount: errors.length,
+  });
+  return { fetched: candidates.length, newJobIds, errors };
 }

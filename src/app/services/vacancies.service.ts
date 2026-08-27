@@ -5,6 +5,7 @@ import {
   collectionData,
   doc,
   docData,
+  limit,
   orderBy,
   query,
   where,
@@ -20,6 +21,13 @@ import { Vacancy } from '../models/vacancy.model';
 export class VacanciesService {
   private firestore = inject(Firestore);
 
+  // Dashboard pagination is client-side over this result set (see
+  // dashboard.component.ts) — a plain 2-user tool doesn't need cursor-based
+  // Firestore pagination, but a hard cap keeps a single read bounded now that
+  // ingestion's EURES backfill sweep (fetchEuresJobs.ts) can surface far more
+  // matches over time than the old ~170-job ceiling.
+  private static readonly MAX_RESULTS = 300;
+
   getMatchedVacancies(persona: PersonaId): Observable<Vacancy[]> {
     const vacanciesRef = collection(this.firestore, COLLECTIONS.Vacancies);
     // 'applied' jobs (auto-application already generated) still belong on
@@ -29,7 +37,8 @@ export class VacanciesService {
       vacanciesRef,
       where('matchedPersona', '==', persona),
       where('status', 'in', ['matched', 'applied']),
-      orderBy('matchScore', 'desc')
+      orderBy('matchScore', 'desc'),
+      limit(VacanciesService.MAX_RESULTS)
     );
     return collectionData(matchedQuery) as Observable<Vacancy[]>;
   }

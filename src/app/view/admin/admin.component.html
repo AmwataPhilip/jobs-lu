@@ -23,6 +23,7 @@
       <p>Status: <span class="num">{{ ingestionResult.status }}</span></p>
       <p>Fetched <span class="num text-paper">{{ ingestionResult.jobsFetched }}</span> ·
          New <span class="num text-paper">{{ ingestionResult.jobsNew }}</span> ·
+         Retried <span class="num text-paper">{{ ingestionResult.jobsRetried }}</span> ·
          Matched <span class="num text-paper">{{ ingestionResult.jobsMatched }}</span></p>
       <p *ngFor="let s of ingestionResult.sourcesSkipped" class="text-paper/40 text-xs">
         Skipped {{ s.source }}: {{ s.reason }}
