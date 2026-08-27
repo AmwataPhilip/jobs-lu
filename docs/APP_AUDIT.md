@@ -6,21 +6,43 @@ items and work in parallel without stepping on each other's files. See
 `docs/APIFY_OPTIMIZATION_PLAN.md` for a deeper dive specifically on ingestion source
 coverage — treat it as the detailed spec for Task C below, not a competing plan.
 
-## How to use this doc
+**Read `README.md` first if this is your first time in this repo.** It has the stack,
+dev/emulator setup, secrets, and deploy commands. Nothing below repeats that — this
+doc assumes you already know how to build and run the project.
+
+## If you were told "pick something up from the audit" (no task named)
+
+Read every file in `docs/status/`, then:
+
+1. Filter to tasks where `status` is `not_started`, or `blocked` where you've
+   independently confirmed the blocker (named in that file's `depends_on` or its Log)
+   is actually resolved.
+2. From what's left, take the lowest **Priority** number in this file — that's the
+   ranked-by-impact order from the original audit, not an arbitrary list order.
+3. That's your task. Claim it (see **Coordination protocol** below) before reading
+   further or writing any code.
+4. If nothing is ready (everything `in_progress`, `done`, or genuinely `blocked`),
+   say so rather than picking a lower-value task to look busy, or ask the human what
+   they'd like worked on instead.
+
+If a human *did* name a specific task (a letter, or pasted a `### Task` block
+directly), that overrides this — just go claim that one.
+
+## How to use this doc once you know your task
 
 Each `### Task` block below is self-contained: hand the whole block to a fresh AI
 session as its prompt (plus "you're working in the jobs-lu repo") and it has enough
 context to start without reading this entire file or the prior conversation. Before
-starting a task:
+starting:
 
 1. Read **`docs/status/<letter>.md`** for the task (e.g. `docs/status/A.md` for Task A)
    — that file, not this one, holds the live status/owner/dependency state. This file
    (`APP_AUDIT.md`) only holds the task spec, which rarely changes, so it's safe for
    several sessions to have open at once.
-2. A task is **ready to claim** only if its status file's `status` is `not_started`
-   (or `blocked` with the block since resolved) *and* every ID in `depends_on` points
-   to a status file whose `status: done`. If `depends_on` includes an `external:...`
-   entry, that one's resolved by a human, not another task file.
+2. Confirm it's actually **ready to claim**: its status file's `status` is
+   `not_started` (or `blocked` with the block since resolved) *and* every ID in
+   `depends_on` points to a status file whose `status: done`. If `depends_on` includes
+   an `external:...` entry, that one's resolved by a human, not another task file.
 3. Check **File scope** — touch only those files/directories. If your task needs to
    touch something outside its scope, stop and flag it rather than improvising.
 4. Check **Contested files** below — if your scope includes one, `git log -1 --
@@ -29,6 +51,9 @@ starting a task:
    is current.
 5. Claim the task immediately (see **Coordination protocol** below) before writing
    any code, so a second agent scanning `docs/status/` doesn't start the same work.
+   After pushing your claim, `git pull` once more and re-open your status file — if
+   someone else's commit landed the same task first (a real but narrow race window),
+   back off and pick your next-best ready task instead of proceeding anyway.
 6. Build (`npm run build` in `functions/`, `ng build` at the repo root) before
    considering a task done. Don't deploy — that's a separate, human-approved step,
    and simultaneous deploys from parallel sessions is exactly the kind of conflict
@@ -107,7 +132,11 @@ ready if `status` is `not_started` and everything in `depends_on` is `done` (or 
 `functions/src/index.ts`, additive sections in `src/app/view/admin/admin.component.ts`
 / `.html` (see contested-file note above), `functions/src/config/personas.ts` only to
 the extent needed to migrate `cvBullets` from a hardcoded array into a Firestore-backed
-read.
+read. Follow the existing allowlist-gated `onCall` + `isAllowlisted()` pattern used by
+every other mutation callable in this repo — see
+`functions/src/vacancies/manageVacancyCallable.ts` or
+`functions/src/applications/updateApplicationStatusCallable.ts` as the closest
+examples to copy.
 
 **Context:** `functions/src/config/personas.ts` hardcodes 4 CV bullets per person,
 checked into source code, with a comment admitting they're placeholders never
