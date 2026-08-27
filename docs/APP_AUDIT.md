@@ -261,6 +261,37 @@ that's not jarring).
 
 ---
 
+### Decided against (deliberate spec deviations — don't re-open without a reason)
+
+A full pass against `docs/EU WorkMe_ Technical and Product Specification Document.md`
+on 2026-08-28 found the app spec-compliant on every module except two items, which
+were then explicitly resolved rather than queued as tasks:
+
+- **EIB careers portal ingestion.** The spec (Module A) names it as a required source
+  for both personas. It was never built — not even attempted, unlike Moovijob/Jobs.lu
+  which were built and are blocked by bot protection. Decision: **cut**, not a gap to
+  fix. `EIB_Portal` has been removed from the `VacancySource` type in both
+  `functions/src/models/vacancy.ts` and `src/app/models/vacancy.model.ts`, and the EIB
+  actor phase was removed from `docs/APIFY_OPTIMIZATION_PLAN.md`'s roadmap. Note: EIB
+  remains listed as a *target institution* in `functions/src/config/personas.ts` for
+  match-scoring purposes — that's unrelated to ingestion and was intentionally left
+  alone; EIB postings can still surface via EURES if EIB ever lists there.
+- **ELM (European Learning Model) XML/RDF for CV assembly.** The spec (Module C)
+  specifies this standard for dynamically reordering CV content. What's actually built
+  reorders a flat array of CV bullet strings by Gemini-judged relevance instead.
+  Decision: **accepted as sufficient, not a gap.** ELM's value is interoperability —
+  letting structured CV data move between systems that both understand the standard.
+  This app has no such consumer: it only ever produces a cover letter + bullet list for
+  Philip or Chiara to read and manually copy (see the "auto-application only ever
+  drafts" note earlier in this doc). Nothing downstream needs ELM's structure, so
+  building it would add real complexity for no practical benefit right now. Revisit
+  only if the app ever needs to submit to a system that specifically requires Europass
+  ELM format.
+
+Silicon Luxembourg's mechanism (plain HTTP + Cheerio instead of the spec's suggested
+Apify actor) was also reviewed and left as-is — it works, that site has no bot
+protection to bypass, and Apify would add cost/complexity for zero benefit here.
+
 ### Not yet actionable
 
 **Feedback loop from application outcomes back into matching** — persona embeddings

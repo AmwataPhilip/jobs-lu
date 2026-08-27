@@ -26,7 +26,7 @@ An audit of the ingestion pipeline ([orchestrator.ts](file:///Users/philip/Works
 | **Moovijob.com** | **Disabled** (`actorId: null`) | Cloudflare Turnstile / Bot Management fingerprints vanilla Playwright. Residential proxies alone failed because browser TLS/canvas fingerprints were detected. |
 | **Jobs.lu** | **Disabled** (`actorId: null`) | Akamai/Cloudflare WAF blocks plain HTTP and standard headless browsers. |
 | **Uni.lu (SnT)** | **Unwired** ([fetchUniLuJobs.ts](file:///Users/philip/Workspace/Other/Philip%20Amwata/jobs-lu/functions/src/ingestion/fetchUniLuJobs.ts)) | AWS WAF Bot Control returns HTTP 202 to plain HTTP clients; Elasticsearch AJAX pagination was unhandled. |
-| **EIB Careers Portal** | **Missing** | Named as top target in spec doc (Module A), but currently has no scraper. |
+| **EIB Careers Portal** | **Cut (product decision)** | Named as top target in spec doc (Module A); deliberately excluded 2026-08-28 — see `docs/APP_AUDIT.md`. Not a gap to fix. |
 | **Amazon LU HQ** | **Missing** | Named in spec doc for Chiara, but has no ingestion source. |
 
 ### Ingestion Execution Architecture Issue
@@ -50,18 +50,15 @@ flowchart TD
     subgraph Apify_Actors [Apify Actors Suite]
         C1[Actor 1: Moovijob Camoufox/Stealth]
         C2[Actor 2: Jobs.lu StepStone Scraper]
-        C3[Actor 3: EIB SAP SuccessFactors]
-        C4[Actor 4: Uni.lu & SnT AWS WAF Resolver]
+        C4[Actor 3: Uni.lu & SnT AWS WAF Resolver]
     end
     
     C --> C1
     C --> C2
-    C --> C3
     C --> C4
     
     C1 -->|Targeted Categories: IT, Finance, ESG, HR| D[Apify Datasets JSON-LD]
     C2 -->|Targeted Categories: Tech, ESG, Legal| D
-    C3 -->|Institutional Feed| D
     C4 -->|Research & Tech Roles| D
     
     D -->|Webhook Event / Dataset Fetch| E[Cloud Functions Ingestion Parser]
@@ -91,10 +88,13 @@ flowchart TD
   2. Switch to `CheerioCrawler` / direct HTTP requests with the acquired session cookies to scrape detail pages at 10x speed and 1/5th memory consumption.
 - On detail pages, extract Schema.org `<script type="application/ld+json">` data directly. This yields pristine structured titles, employers, ISO datePosted, baseSalary ranges, and clean HTML descriptions without fragile DOM selector scraping.
 
-### Pillar 4: Institutional Scrapers for High-Value Targets (EIB & Uni.lu / SnT)
-- **EIB (European Investment Bank)**:
-  - EIB uses SAP SuccessFactors (`eib.org/en/careers` or `erecruitment.eib.org`).
-  - An Apify actor can scrape the official career portal via its internal JSON endpoints or headless search, capturing senior ESG, Climate Finance, Tech, and Risk positions that are never posted to third-party boards.
+### Pillar 4: Institutional Scraper for Uni.lu / SnT
+
+EIB careers portal ingestion was cut from this plan 2026-08-28 (explicit product
+decision, not a technical blocker) — see `docs/APP_AUDIT.md`. `EIB_Portal` has also
+been removed from the `VacancySource` type in both models; don't re-add an EIB actor
+here without that decision being revisited first.
+
 - **Uni.lu / SnT**:
   - Deploy a Crawlee Playwright actor that passes the AWS WAF JS challenge and extracts research associate, software architect, and postdoc positions from SnT and the Faculty of Science, Technology and Medicine (FSTM).
 
@@ -117,9 +117,8 @@ gantt
     Build Camoufox/Stealth Actor       :2026-08-29, 3d
     Implement Category Pre-filtering   :2026-08-31, 2d
     Test & Deploy Actor to Apify      :2026-09-02, 1d
-    section Phase 2: Institutional Scrapers
-    Develop EIB Careers Actor         :2026-09-03, 3d
-    Develop Uni.lu / SnT Actor         :2026-09-06, 2d
+    section Phase 2: Institutional Scraper
+    Develop Uni.lu / SnT Actor         :2026-09-03, 2d
     section Phase 3: Jobs.lu (StepStone)
     Build Jobs.lu Actor with Crawlee   :2026-09-08, 3d
     section Phase 4: Async Pipeline & Webhooks
@@ -140,10 +139,7 @@ gantt
      - `https://en.moovijob.com/job-offers/jobs-luxembourg/audit-consulting`
   3. Deploy actor with `apify push` and update `MOOVIJOB_ACTOR_ID` in [fetchApifySource.ts](file:///Users/philip/Workspace/Other/Philip%20Amwata/jobs-lu/functions/src/ingestion/fetchApifySource.ts).
 
-### Phase 2: Build Dedicated EIB & Uni.lu Institutional Actors
-- **EIB Actor**:
-  - Target: `https://erecruitment.eib.org/`
-  - Extract: Job Title, Directorates (Risk, ESG, IT, Climate), Location (Kirchberg, Luxembourg), Grade, and detailed requirements.
+### Phase 2: Build the Uni.lu Institutional Actor
 - **Uni.lu & SnT Actor**:
   - Target: `https://www.uni.lu/en/about/work/explore-our-jobs/`
   - Use headless browser to bypass AWS WAF 202 and trigger the AJAX pagination to fetch all SnT and university-wide engineering & management roles.
@@ -234,8 +230,8 @@ await Actor.exit();
 
 | Metric | Current State | With Optimized Apify Architecture |
 | :--- | :--- | :--- |
-| **Luxembourg Market Coverage** | ~40% (EURES + Silicon LU only) | **>92%** (EURES + Moovijob + Jobs.lu + EIB + Uni.lu) |
-| **Institutional Targeting (EIB / SnT)** | 0% automated | **100% automated precision sourcing** |
+| **Luxembourg Market Coverage** | ~40% (EURES + Silicon LU only) | **>85%** (EURES + Moovijob + Jobs.lu + Uni.lu — EIB deliberately excluded, see above) |
+| **Institutional Targeting (SnT)** | 0% automated | **100% automated precision sourcing** |
 | **Irrelevant Job Ingestion Rate** | High (unfiltered broad crawls) | **<5%** (pre-filtered by domain categories) |
 | **Apify Compute Credit Efficiency** | Wasteful (failed CF attempts) | **5x more jobs per Apify dollar** |
 | **Ingestion Timeout Risk** | High (sync 540s deadline) | **Zero** (event-driven async pipeline) |

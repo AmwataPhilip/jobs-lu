@@ -4,7 +4,6 @@ export type VacancySource =
   | 'EURES'
   | 'Moovijob'
   | 'JobsLu'
-  | 'EIB_Portal'
   | 'SiliconLuxembourg'
   | 'UniLu';
 
