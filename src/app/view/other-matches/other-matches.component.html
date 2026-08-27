@@ -1,0 +1,191 @@
+<div class="min-h-screen bg-ink">
+  <header class="flex items-center justify-between px-6 py-4 border-b border-paper/10">
+    <div>
+      <a routerLink="/dashboard" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
+        ← Back to dashboard
+      </a>
+      <h1 class="font-display font-medium text-base text-paper mt-1">Other matches</h1>
+    </div>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3 border-b border-paper/10">
+    <div class="flex items-center gap-1">
+      <button
+        class="px-3 py-1 text-xs font-medium rounded-sm transition-colors"
+        [class.bg-gold]="tab() === 'other'"
+        [class.text-ink]="tab() === 'other'"
+        [class.text-paper]="tab() !== 'other'"
+        [class.opacity-50]="tab() !== 'other'"
+        (click)="setTab('other')"
+      >
+        Other matches
+      </button>
+      <button
+        class="px-3 py-1 text-xs font-medium rounded-sm transition-colors"
+        [class.bg-gold]="tab() === 'archived'"
+        [class.text-ink]="tab() === 'archived'"
+        [class.text-paper]="tab() !== 'archived'"
+        [class.opacity-50]="tab() !== 'archived'"
+        (click)="setTab('archived')"
+      >
+        Archived
+      </button>
+    </div>
+
+    <div class="flex items-center gap-1">
+      <button
+        class="px-2.5 py-1 text-xs font-medium rounded-sm transition-colors"
+        [ngClass]="personaFilter() === 'both' ? 'bg-paper/10 text-paper' : 'text-paper/50'"
+        (click)="setPersonaFilter('both')"
+      >
+        Both
+      </button>
+      <button
+        class="px-2.5 py-1 text-xs font-medium rounded-sm transition-colors"
+        [ngClass]="personaFilter() === 'philip' ? 'bg-paper/10 text-paper' : 'text-paper/50'"
+        (click)="setPersonaFilter('philip')"
+      >
+        Philip
+      </button>
+      <button
+        class="px-2.5 py-1 text-xs font-medium rounded-sm transition-colors"
+        [ngClass]="personaFilter() === 'chiara' ? 'bg-paper/10 text-paper' : 'text-paper/50'"
+        (click)="setPersonaFilter('chiara')"
+      >
+        Chiara
+      </button>
+    </div>
+
+    <label class="flex items-center gap-2">
+      <span class="text-xs text-paper/40">Sort</span>
+      <select
+        class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1 focus:outline-none focus:border-gold/50"
+        [value]="sortKey()"
+        (change)="setSortKey($any($event.target).value)"
+      >
+        <option value="postedAt">Posting date (newest)</option>
+        <option value="deadline">Application deadline (soonest)</option>
+        <option value="salary">Salary (highest)</option>
+        <option value="shortage">Shortage occupation first</option>
+      </select>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <span class="text-xs text-paper/40">Posted</span>
+      <select
+        class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1 focus:outline-none focus:border-gold/50"
+        [value]="postedWithin()"
+        (change)="setPostedWithin($any($event.target).value)"
+      >
+        <option value="any">Any time</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <span class="text-xs text-paper/40">Deadline</span>
+      <select
+        class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1 focus:outline-none focus:border-gold/50"
+        [value]="deadlineWithin()"
+        (change)="setDeadlineWithin($any($event.target).value)"
+      >
+        <option value="any">Any / unknown</option>
+        <option value="7">Within 7 days</option>
+        <option value="30">Within 30 days</option>
+      </select>
+    </label>
+
+    <input
+      type="text"
+      placeholder="Search title, employer, skill…"
+      class="w-56 text-xs bg-paper/[0.06] text-paper placeholder:text-paper/30 rounded border border-paper/10 px-3 py-1.5 focus:outline-none focus:border-gold/50"
+      [value]="searchQuery()"
+      (input)="setSearchQuery($any($event.target).value)"
+    />
+  </div>
+
+  <div>
+    <a
+      *ngFor="let job of pageItems()"
+      [routerLink]="jobDetailUrl(job.jobId)"
+      class="group relative flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
+    >
+      <span class="shrink-0 w-14 text-[11px] font-medium text-paper/40 pt-0.5">{{ personaLabel(job.persona) }}</span>
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-medium text-paper truncate">{{ job.title }}</h3>
+        <p class="text-xs text-paper/50 mt-0.5">{{ job.employer }}</p>
+        <p class="text-xs text-paper/30 mt-0.5">
+          {{ job.location.city || job.location.country }}
+          <ng-container *ngIf="job.location.allowsTelework">
+            · remote up to <span class="num">{{ job.location.teleworkPercentageMax }}</span>%
+          </ng-container>
+          <ng-container *ngIf="job.postedAt"> · posted {{ job.postedAt.toDate() | date: 'MMM d' }}</ng-container>
+          <ng-container *ngIf="job.applicationDeadline"> · deadline {{ job.applicationDeadline.toDate() | date: 'MMM d' }}</ng-container>
+        </p>
+        <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="job.shortageOccupationMatch || job.estimatedSalary">
+          <span
+            *ngIf="job.shortageOccupationMatch"
+            class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-green/10 text-signal-green"
+          >
+            Shortage occupation
+          </span>
+          <span *ngIf="job.estimatedSalary" class="num text-[11px] font-medium px-2 py-0.5 rounded-sm bg-paper/[0.06] text-paper/70">
+            €{{ job.estimatedSalary | number: '1.0-0' }}
+          </span>
+        </div>
+      </div>
+      <span class="num shrink-0 w-10 text-right text-xs text-paper/30 pt-0.5">
+        {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
+      </span>
+      <div class="hidden group-hover:flex items-center gap-2 shrink-0 pt-0.5">
+        <button
+          *ngIf="tab() === 'archived'"
+          class="text-[11px] text-paper/40 hover:text-paper transition-colors"
+          (click)="restoreJob(job.jobId, $event)"
+        >
+          Restore
+        </button>
+        <button
+          *ngIf="tab() === 'other'"
+          class="text-[11px] text-paper/40 hover:text-paper transition-colors"
+          (click)="archiveJob(job.jobId, $event)"
+        >
+          Archive
+        </button>
+        <button
+          class="text-[11px] transition-colors"
+          [ngClass]="isPendingDelete(job.jobId) ? 'text-signal-red font-medium' : 'text-paper/40 hover:text-signal-red'"
+          (click)="deleteJob(job.jobId, $event)"
+        >
+          {{ isPendingDelete(job.jobId) ? 'Confirm?' : 'Delete' }}
+        </button>
+      </div>
+    </a>
+
+    <p *ngIf="pageItems().length === 0" class="px-6 py-8 text-sm text-paper/30">
+      Nothing here.
+    </p>
+
+    <div class="flex items-center justify-between px-6 py-3 border-t border-paper/10" *ngIf="totalPages() > 1">
+      <button
+        class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+        [disabled]="page() === 1"
+        (click)="setPage(page() - 1)"
+      >
+        ← Prev
+      </button>
+      <span class="text-xs text-paper/40">
+        Page <span class="num text-paper/70">{{ page() }}</span> of
+        <span class="num text-paper/70">{{ totalPages() }}</span>
+      </span>
+      <button
+        class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+        [disabled]="page() === totalPages()"
+        (click)="setPage(page() + 1)"
+      >
+        Next →
+      </button>
+    </div>
+  </div>
+</div>

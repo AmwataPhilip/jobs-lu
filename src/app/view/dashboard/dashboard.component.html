@@ -13,6 +13,18 @@
     </div>
     <div class="flex items-center gap-2">
       <a
+        routerLink="/matches/other"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Other matches
+      </a>
+      <a
+        routerLink="/applications"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Applications
+      </a>
+      <a
         routerLink="/admin"
         class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
       >
@@ -61,11 +73,19 @@
       </button>
     </div>
 
+    <input
+      type="text"
+      placeholder="Search title, employer, skill…"
+      class="w-56 text-xs bg-paper/[0.06] text-paper placeholder:text-paper/30 rounded border border-paper/10 px-3 py-1.5 focus:outline-none focus:border-gold/50"
+      [value]="searchQuery()"
+      (input)="setSearchQuery($any($event.target).value)"
+    />
+
     <label class="flex items-center gap-3 shrink-0">
       <span class="text-xs text-paper/40 whitespace-nowrap">Min. match</span>
       <input
         type="range"
-        min="0"
+        min="80"
         max="100"
         step="5"
         class="w-32 accent-gold"
@@ -95,7 +115,7 @@
         <a
           *ngFor="let job of philipPageItems()"
           [routerLink]="jobDetailUrl(job.jobId)"
-          class="flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
+          class="group relative flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
           <span class="num shrink-0 w-12 text-right text-base font-medium text-gold pt-0.5">
             {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
@@ -129,6 +149,21 @@
                 CCSS risk
               </span>
             </div>
+          </div>
+          <div class="hidden group-hover:flex items-center gap-2 shrink-0 pt-0.5">
+            <button
+              class="text-[11px] text-paper/40 hover:text-paper transition-colors"
+              (click)="archiveJob(job.jobId, $event)"
+            >
+              Archive
+            </button>
+            <button
+              class="text-[11px] transition-colors"
+              [ngClass]="isPendingDelete(job.jobId) ? 'text-signal-red font-medium' : 'text-paper/40 hover:text-signal-red'"
+              (click)="deleteJob(job.jobId, $event)"
+            >
+              {{ isPendingDelete(job.jobId) ? 'Confirm?' : 'Delete' }}
+            </button>
           </div>
         </a>
 
@@ -171,7 +206,7 @@
         <a
           *ngFor="let job of chiaraPageItems()"
           [routerLink]="jobDetailUrl(job.jobId)"
-          class="flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
+          class="group relative flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
           <span class="num shrink-0 w-12 text-right text-base font-medium text-gold pt-0.5">
             {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
@@ -205,6 +240,21 @@
                 CCSS risk
               </span>
             </div>
+          </div>
+          <div class="hidden group-hover:flex items-center gap-2 shrink-0 pt-0.5">
+            <button
+              class="text-[11px] text-paper/40 hover:text-paper transition-colors"
+              (click)="archiveJob(job.jobId, $event)"
+            >
+              Archive
+            </button>
+            <button
+              class="text-[11px] transition-colors"
+              [ngClass]="isPendingDelete(job.jobId) ? 'text-signal-red font-medium' : 'text-paper/40 hover:text-signal-red'"
+              (click)="deleteJob(job.jobId, $event)"
+            >
+              {{ isPendingDelete(job.jobId) ? 'Confirm?' : 'Delete' }}
+            </button>
           </div>
         </a>
 

@@ -102,10 +102,17 @@ export async function runIngestion(
   // would otherwise stay at status:'new' forever, only ever fetched, never
   // retried, and invisible on the dashboard (which only shows 'matched'/
   // 'applied'). Sweep for anything still stuck at 'new' and retry it here
-  // alongside this run's genuinely new jobs.
+  // alongside this run's genuinely new jobs. Capped like everything else
+  // below — an unbounded backlog sweep is exactly what caused runs to time
+  // out regardless of how high timeoutSeconds was set: a run that times out
+  // leaves its own jobs at 'new', so the next run's sweep would only grow,
+  // guaranteeing every future run also times out. A bounded sweep instead
+  // makes steady, predictable progress through any backlog across runs.
+  const MAX_STALLED_RETRY_PER_RUN = 40;
   const stalledSnap = await db
     .collection(COLLECTIONS.Vacancies)
     .where('status', '==', 'new')
+    .limit(MAX_STALLED_RETRY_PER_RUN)
     .get();
   const stalledJobIds = stalledSnap.docs
     .map((doc) => doc.id)

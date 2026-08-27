@@ -124,6 +124,8 @@ export async function fetchUniLuJobs(
           shortageOccupationMatch: null,
           matchedPersona: null,
           matchScore: null,
+          postedAt: null,
+          applicationDeadline: null,
           status: 'new',
         };
         await docRef.set(vacancy);

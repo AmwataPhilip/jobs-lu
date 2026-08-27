@@ -43,8 +43,27 @@ export class VacanciesService {
     return collectionData(matchedQuery) as Observable<Vacancy[]>;
   }
 
+  // Archived jobs are excluded from getMatchedVacancies (status filter above)
+  // — this is the only way to see them again, for the "Archived" tab on the
+  // other-matches page.
+  getArchivedVacancies(persona: PersonaId): Observable<Vacancy[]> {
+    const vacanciesRef = collection(this.firestore, COLLECTIONS.Vacancies);
+    const archivedQuery = query(
+      vacanciesRef,
+      where('matchedPersona', '==', persona),
+      where('status', '==', 'archived'),
+      limit(VacanciesService.MAX_RESULTS)
+    );
+    return collectionData(archivedQuery) as Observable<Vacancy[]>;
+  }
+
   getVacancy(jobId: string): Observable<Vacancy | undefined> {
     const vacancyRef = doc(this.firestore, COLLECTIONS.Vacancies, jobId);
     return docData(vacancyRef) as Observable<Vacancy | undefined>;
+  }
+
+  getAllVacancies(): Observable<Vacancy[]> {
+    const vacanciesRef = collection(this.firestore, COLLECTIONS.Vacancies);
+    return collectionData(vacanciesRef) as Observable<Vacancy[]>;
   }
 }

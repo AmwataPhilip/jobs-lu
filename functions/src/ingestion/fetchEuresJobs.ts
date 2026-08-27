@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { EURES_LOCATION_CODES } from '../config/euresLocations';
 import { Vacancy } from '../models/vacancy';
@@ -23,7 +23,18 @@ const DETAIL_FETCH_CONCURRENCY = 5;
 //    pool eventually gets covered over many runs. Revisiting already-known
 //    jobs during the sweep is cheap: see the existence pre-check below.
 const RECENT_PAGES = 6;
-const BACKFILL_PAGES_PER_RUN = 6;
+const BACKFILL_PAGES_PER_RUN = 3;
+// The search phase above can surface up to (RECENT_PAGES + BACKFILL_PAGES_PER_RUN)
+// * RESULTS_PER_PAGE candidates — but scan depth and per-run *work* are
+// different budgets. Detail-fetching + writing + (in orchestrator.ts)
+// Gemini-matching every genuinely-new job found is what actually costs time,
+// and used to be unbounded: the first run after widening the scan (or any
+// run following a source outage) could find hundreds of new jobs at once and
+// blow through the function timeout no matter how high that timeout was set.
+// Capping new-job processing per run keeps each run's duration predictable;
+// anything past the cap simply gets picked up on the next run (nothing is
+// lost — the existence pre-check only skips jobs once they're actually saved).
+const MAX_NEW_JOBS_PER_RUN = 40;
 
 const COLLECTIONS = { Vacancies: 'jobslu_vacancies', IngestionState: 'jobslu_ingestion_state' };
 const BACKFILL_STATE_DOC = 'eures';
@@ -61,6 +72,7 @@ interface EuresJobProfile {
 
 interface EuresDetailResponse {
   id: string;
+  creationDate: number | null; // epoch millis
   jvProfiles: Record<string, EuresJobProfile>;
 }
 
@@ -99,7 +111,9 @@ async function searchPage(page: number): Promise<EuresSearchResponse> {
   return (await response.json()) as EuresSearchResponse;
 }
 
-async function fetchDetail(id: string): Promise<EuresJobProfile | null> {
+async function fetchDetail(
+  id: string
+): Promise<{ profile: EuresJobProfile; creationDate: number | null } | null> {
   const response = await fetch(
     `${DETAIL_URL_BASE}/${encodeURIComponent(id)}?requestLang=en`
   );
@@ -108,7 +122,7 @@ async function fetchDetail(id: string): Promise<EuresJobProfile | null> {
   }
   const detail = (await response.json()) as EuresDetailResponse;
   const profile = detail.jvProfiles['en'] ?? Object.values(detail.jvProfiles)[0];
-  return profile ?? null;
+  return profile ? { profile, creationDate: detail.creationDate ?? null } : null;
 }
 
 function estimateSalary(profile: EuresJobProfile): number | null {
@@ -194,7 +208,9 @@ export async function fetchEuresJobs(runId: string): Promise<{
   const docRefs = uniqueResults.map((r) => db.collection(COLLECTIONS.Vacancies).doc(`eures_${r.id}`));
   const existingDocs = docRefs.length > 0 ? await db.getAll(...docRefs) : [];
   const existingIds = new Set(existingDocs.filter((d) => d.exists).map((d) => d.id));
-  const newResults = uniqueResults.filter((r) => !existingIds.has(`eures_${r.id}`));
+  const newResults = uniqueResults
+    .filter((r) => !existingIds.has(`eures_${r.id}`))
+    .slice(0, MAX_NEW_JOBS_PER_RUN);
 
   let upserted = 0;
   const newJobIds: string[] = [];
@@ -204,11 +220,12 @@ export async function fetchEuresJobs(runId: string): Promise<{
     await Promise.all(
       chunk.map(async (result) => {
         try {
-          const profile = await fetchDetail(result.id);
-          if (!profile) {
+          const detail = await fetchDetail(result.id);
+          if (!detail) {
             errors.push(`detail fetch returned nothing for ${result.id}`);
             return;
           }
+          const { profile, creationDate } = detail;
           const location = profile.locations?.[0];
           const jobId = `eures_${result.id}`;
           const vacancy: Vacancy = {
@@ -232,6 +249,8 @@ export async function fetchEuresJobs(runId: string): Promise<{
             shortageOccupationMatch: null,
             matchedPersona: null,
             matchScore: null,
+            postedAt: creationDate ? Timestamp.fromMillis(creationDate) : null,
+            applicationDeadline: null,
             ingestedAt: FieldValue.serverTimestamp(),
             ingestionRunId: runId,
             status: 'new',

@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { Vacancy, VacancySource } from '../models/vacancy';
 
@@ -124,6 +124,11 @@ async function ingestMoovijob(
         shortageOccupationMatch: null,
         matchedPersona: null,
         matchScore: null,
+        postedAt:
+          item.datePosted && !Number.isNaN(Date.parse(item.datePosted))
+            ? Timestamp.fromDate(new Date(item.datePosted))
+            : null,
+        applicationDeadline: null,
         status: 'new',
       };
       await docRef.set(vacancy);

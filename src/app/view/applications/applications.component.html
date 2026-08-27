@@ -1,0 +1,102 @@
+<div class="min-h-screen bg-ink">
+  <header class="flex items-center justify-between px-6 py-4 border-b border-paper/10">
+    <div>
+      <a routerLink="/dashboard" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
+        ← Back to dashboard
+      </a>
+      <h1 class="font-display font-medium text-base text-paper mt-1">Applications</h1>
+    </div>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3 border-b border-paper/10">
+    <label class="flex items-center gap-2">
+      <span class="text-xs text-paper/40">Status</span>
+      <select
+        class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1 focus:outline-none focus:border-gold/50"
+        [value]="statusFilter()"
+        (change)="setStatusFilter($any($event.target).value)"
+      >
+        <option value="all">All statuses</option>
+        <option *ngFor="let s of statuses" [value]="s">{{ statusLabel(s) }}</option>
+      </select>
+    </label>
+
+    <div class="flex items-center gap-1">
+      <button
+        class="px-2.5 py-1 text-xs font-medium rounded-sm transition-colors"
+        [ngClass]="personaFilter() === 'both' ? 'bg-paper/10 text-paper' : 'text-paper/50'"
+        (click)="setPersonaFilter('both')"
+      >
+        Both
+      </button>
+      <button
+        class="px-2.5 py-1 text-xs font-medium rounded-sm transition-colors"
+        [ngClass]="personaFilter() === 'philip' ? 'bg-paper/10 text-paper' : 'text-paper/50'"
+        (click)="setPersonaFilter('philip')"
+      >
+        Philip
+      </button>
+      <button
+        class="px-2.5 py-1 text-xs font-medium rounded-sm transition-colors"
+        [ngClass]="personaFilter() === 'chiara' ? 'bg-paper/10 text-paper' : 'text-paper/50'"
+        (click)="setPersonaFilter('chiara')"
+      >
+        Chiara
+      </button>
+    </div>
+  </div>
+
+  <div>
+    <a
+      *ngFor="let row of pageItems()"
+      [routerLink]="jobDetailUrl(row.application.jobId)"
+      class="flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
+    >
+      <span class="shrink-0 w-14 text-[11px] font-medium text-paper/40 pt-0.5">{{ personaLabel(row.application.persona) }}</span>
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-medium text-paper truncate">{{ row.vacancyTitle }}</h3>
+        <p class="text-xs text-paper/50 mt-0.5">{{ row.vacancyEmployer }}</p>
+        <p class="text-xs text-paper/30 mt-0.5" *ngIf="row.lastUpdatedMillis">
+          Updated {{ row.lastUpdatedMillis | date: 'MMM d, y' }}
+        </p>
+      </div>
+      <span
+        class="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-sm"
+        [ngClass]="{
+          'bg-paper/[0.06] text-paper/50': row.application.status === 'draft' || row.application.status === 'reviewed',
+          'bg-gold/10 text-gold': row.application.status === 'submitted',
+          'bg-signal-amber/10 text-signal-amber': row.application.status === 'interviewing',
+          'bg-signal-green/10 text-signal-green': row.application.status === 'offer',
+          'bg-signal-red/10 text-signal-red': row.application.status === 'rejected' || row.application.status === 'withdrawn'
+        }"
+      >
+        {{ statusLabel(row.application.status) }}
+      </span>
+    </a>
+
+    <p *ngIf="pageItems().length === 0" class="px-6 py-8 text-sm text-paper/30">
+      No applications yet.
+    </p>
+
+    <div class="flex items-center justify-between px-6 py-3 border-t border-paper/10" *ngIf="totalPages() > 1">
+      <button
+        class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+        [disabled]="page() === 1"
+        (click)="setPage(page() - 1)"
+      >
+        ← Prev
+      </button>
+      <span class="text-xs text-paper/40">
+        Page <span class="num text-paper/70">{{ page() }}</span> of
+        <span class="num text-paper/70">{{ totalPages() }}</span>
+      </span>
+      <button
+        class="text-xs text-paper/50 hover:text-paper disabled:opacity-30 disabled:hover:text-paper/50 transition-colors"
+        [disabled]="page() === totalPages()"
+        (click)="setPage(page() + 1)"
+      >
+        Next →
+      </button>
+    </div>
+  </div>
+</div>

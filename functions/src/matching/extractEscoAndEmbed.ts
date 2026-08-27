@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { embedText, extractJobSignals } from '../lib/gemini';
 import { lookupEscoSkillUris } from '../lib/esco';
@@ -44,6 +44,9 @@ export async function extractEscoAndEmbed(
     'location.allowsTelework': signals.allowsTelework,
     'location.teleworkPercentageMax': signals.teleworkPercentageMax,
     shortageOccupationMatch: signals.shortageOccupationMatch,
+    applicationDeadline: signals.applicationDeadline
+      ? Timestamp.fromDate(new Date(signals.applicationDeadline))
+      : null,
     embedding: FieldValue.vector(embedding),
   });
 

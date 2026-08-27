@@ -1,6 +1,20 @@
+import { Timestamp } from '@angular/fire/firestore';
 import { PersonaId } from './persona.model';
 
-export type ApplicationStatus = 'draft' | 'reviewed' | 'submitted';
+export type ApplicationStatus =
+  | 'draft'
+  | 'reviewed'
+  | 'submitted'
+  | 'interviewing'
+  | 'offer'
+  | 'rejected'
+  | 'withdrawn';
+
+export interface ApplicationStatusEvent {
+  status: ApplicationStatus;
+  changedAt: Timestamp;
+  note: string | null;
+}
 
 export interface JobApplication {
   applicationId: string;
@@ -11,5 +25,6 @@ export interface JobApplication {
   reorderedCvBullets: string[];
   generationRationale: string;
   status: ApplicationStatus;
+  statusHistory: ApplicationStatusEvent[];
   createdAt: string;
 }

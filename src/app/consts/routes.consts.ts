@@ -4,6 +4,8 @@ export const ROUTES = {
   },
   dashboard: 'dashboard',
   jobs: 'jobs',
+  otherMatches: 'matches/other',
+  applications: 'applications',
 };
 
 export function jobDetailUrl(jobId: string): string {

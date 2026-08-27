@@ -1,9 +1,35 @@
 <div class="min-h-screen bg-ink px-6 py-8 max-w-2xl mx-auto">
-  <a [routerLink]="dashboardUrl" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
-    ← Back to dashboard
-  </a>
-
   <ng-container *ngIf="vacancy$ | async as job; else loading">
+    <div class="flex items-center justify-between">
+      <a [routerLink]="dashboardUrl" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
+        ← Back to dashboard
+      </a>
+      <div class="flex items-center gap-3">
+        <button
+          *ngIf="job.status === 'archived'; else archiveBtn"
+          class="text-xs text-paper/40 hover:text-paper transition-colors"
+          (click)="restore(job.jobId)"
+        >
+          Restore
+        </button>
+        <ng-template #archiveBtn>
+          <button
+            class="text-xs text-paper/40 hover:text-paper transition-colors"
+            (click)="archive(job.jobId)"
+          >
+            Archive
+          </button>
+        </ng-template>
+        <button
+          class="text-xs transition-colors"
+          [ngClass]="pendingDelete() ? 'text-signal-red font-medium' : 'text-paper/40 hover:text-signal-red'"
+          (click)="deleteVacancy(job.jobId)"
+        >
+          {{ pendingDelete() ? 'Confirm delete?' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+
     <div class="flex items-start justify-between gap-4 mt-5">
       <div>
         <h1 class="font-display font-medium text-xl text-paper">{{ job.title }}</h1>
@@ -86,9 +112,23 @@
       class="mt-8 border-t border-paper/10 pt-6"
     >
       <ng-container *ngIf="matchedPersona$ | async as persona">
-        <div class="flex items-center gap-2 mb-1">
-          <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide">Generated application</h2>
-          <span class="text-[10px] font-mono text-paper/25">GEMINI</span>
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <div class="flex items-center gap-2">
+            <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide">Generated application</h2>
+            <span class="text-[10px] font-mono text-paper/25">GEMINI</span>
+          </div>
+          <span
+            class="text-[11px] font-medium px-2 py-0.5 rounded-sm"
+            [ngClass]="{
+              'bg-paper/[0.06] text-paper/50': application.status === 'draft' || application.status === 'reviewed',
+              'bg-gold/10 text-gold': application.status === 'submitted',
+              'bg-signal-amber/10 text-signal-amber': application.status === 'interviewing',
+              'bg-signal-green/10 text-signal-green': application.status === 'offer',
+              'bg-signal-red/10 text-signal-red': application.status === 'rejected' || application.status === 'withdrawn'
+            }"
+          >
+            {{ statusLabel(application.status) }}
+          </span>
         </div>
         <p class="text-xs text-paper/30 mb-4">{{ application.generationRationale }}</p>
 
@@ -102,6 +142,35 @@
               {{ resolveBulletText(persona, bulletId) }}
             </li>
           </ol>
+        </div>
+
+        <div class="mt-6">
+          <h3 class="text-[11px] font-medium text-paper/40 uppercase tracking-wide mb-3">Update status</h3>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              *ngFor="let s of applicationStatuses"
+              class="text-[11px] font-medium px-2.5 py-1 rounded-sm transition-colors"
+              [ngClass]="application.status === s ? 'bg-gold text-ink' : 'bg-paper/[0.06] text-paper/60 hover:text-paper'"
+              (click)="setApplicationStatus(application.jobId, s)"
+            >
+              {{ statusLabel(s) }}
+            </button>
+          </div>
+          <input
+            type="text"
+            placeholder="Optional note (e.g. interviewer name, next step)…"
+            class="mt-2 w-full text-xs bg-paper/[0.06] text-paper placeholder:text-paper/30 rounded border border-paper/10 px-3 py-1.5 focus:outline-none focus:border-gold/50"
+            [value]="statusNote()"
+            (input)="statusNote.set($any($event.target).value)"
+          />
+
+          <div class="mt-4 space-y-1.5" *ngIf="application.statusHistory?.length">
+            <div *ngFor="let event of application.statusHistory" class="flex items-baseline gap-2 text-xs">
+              <span class="text-paper/70 font-medium w-20 shrink-0">{{ statusLabel(event.status) }}</span>
+              <span class="num text-paper/30">{{ event.changedAt.toDate() | date: 'MMM d, y, h:mm a' }}</span>
+              <span class="text-paper/40" *ngIf="event.note">— {{ event.note }}</span>
+            </div>
+          </div>
         </div>
       </ng-container>
     </div>

@@ -1,3 +1,4 @@
+import { Timestamp } from '@angular/fire/firestore';
 import { PersonaId } from './persona.model';
 
 export type VacancySource =
@@ -13,7 +14,10 @@ export type VacancyStatus =
   | 'matched'
   | 'applied'
   | 'rejected'
-  | 'expired';
+  | 'expired'
+  // Manually hidden by a user from the main dashboard lists — data is kept,
+  // not deleted. See admin/archiveVacancyCallable.ts.
+  | 'archived';
 
 export interface VacancyLocation {
   country: string;
@@ -35,6 +39,8 @@ export interface Vacancy {
   shortageOccupationMatch: string | null;
   matchedPersona: PersonaId | null;
   matchScore: number | null;
+  postedAt: Timestamp | null;
+  applicationDeadline: Timestamp | null;
   ingestedAt: string;
   ingestionRunId: string;
   status: VacancyStatus;

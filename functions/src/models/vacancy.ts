@@ -13,7 +13,11 @@ export type VacancyStatus =
   | 'matched'
   | 'applied'
   | 'rejected'
-  | 'expired';
+  | 'expired'
+  // Manually hidden by a user from the main dashboard lists — distinct from
+  // 'rejected' (reserved for an employer/pipeline outcome, not in use yet).
+  // Data is kept, not deleted; see admin/archiveVacancyCallable.ts.
+  | 'archived';
 
 export interface VacancyLocation {
   country: string;
@@ -43,6 +47,14 @@ export interface Vacancy {
   shortageOccupationMatch: string | null;
   matchedPersona: PersonaId | null;
   matchScore: number | null;
+  // When the listing was originally published. EURES exposes this directly
+  // (creationDate); Silicon Luxembourg shows it on each listing card. Null
+  // when a source doesn't expose it.
+  postedAt: FirebaseFirestore.Timestamp | null;
+  // Best-effort — extracted from rawDescription by Gemini (extractEscoAndEmbed.ts)
+  // when the text mentions one. Neither EURES nor Silicon Luxembourg expose a
+  // structured deadline field, so this is null far more often than not.
+  applicationDeadline: FirebaseFirestore.Timestamp | null;
   ingestedAt: FirebaseFirestore.FieldValue | FirebaseFirestore.Timestamp;
   ingestionRunId: string;
   status: VacancyStatus;

@@ -16,3 +16,10 @@ export { autoGenerateApplication } from './documents/autoGenerateApplication';
 export { adminSeedReferenceData } from './admin/seedCallable';
 export { adminRunIngestion } from './admin/runIngestionCallable';
 export { adminUpdatePersonaDomains } from './admin/updatePersonaCallable';
+
+// Vacancy management callables (dashboard/job-detail job card actions) —
+// allowlist-gated.
+export { archiveVacancy, restoreVacancy, deleteVacancy } from './vacancies/manageVacancyCallable';
+
+// Application pipeline tracking (job-detail / applications page) — allowlist-gated.
+export { updateApplicationStatus } from './applications/updateApplicationStatusCallable';

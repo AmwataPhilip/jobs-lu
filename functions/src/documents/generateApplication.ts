@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { generateApplication as callGemini } from '../lib/gemini';
 import { PersonaId, Persona } from '../config/personas';
@@ -72,6 +72,7 @@ export async function generateApplicationForJob(
     reorderedCvBullets: generated.reorderedCvBulletIds,
     generationRationale: generated.generationRationale,
     status: 'draft',
+    statusHistory: [{ status: 'draft', changedAt: Timestamp.now(), note: null }],
     createdAt: FieldValue.serverTimestamp(),
   };
 
