@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <g id="Icons_Actions_ic-actions-check" data-name="Icons / Actions / ic-actions-check" opacity="0.64">
+    <rect id="Rectangle_139" data-name="Rectangle 139" width="16" height="16" fill="none"/>
+    <g id="ic-actions-check" transform="translate(1.333 1.333)">
+      <path id="Path_9" data-name="Path 9" d="M6.56,11.263,8.6,13.3,13.813,8.09" transform="translate(-3.52 -4.03)" fill="none" stroke="#407EF8" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" fill-rule="evenodd"/>
+      <circle id="Ellipse_2" data-name="Ellipse 2" cx="7" cy="7" r="7" transform="translate(-0.333 -0.333)" fill="none" stroke="#407EF8" stroke-linecap="round" stroke-linejoin="bevel" stroke-width="1"/>
+    </g>
+  </g>
+</svg>

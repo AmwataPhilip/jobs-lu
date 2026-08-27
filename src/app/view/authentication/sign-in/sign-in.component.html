@@ -1,0 +1,117 @@
+<div class="flex flex-col items-center justify-center w-full h-screen gap-14">
+  <div class="flex flex-col items-center gap-4">
+    <div class="justify-end items-start gap-0.5 inline-flex">
+      <div>
+        <img
+          src="../../../../assets/icons/google-icon-dark.svg"
+          alt=" Logo"
+          class="w-16"
+        />
+      </div>
+    </div>
+    <div
+      class="self-stretch h-14 flex-col justify-start items-center gap-0.5 flex"
+    >
+      <div
+        class="self-stretch text-center text-neutral-700 text-xl font-bold leading-[30px]"
+      >
+        Welcome Back
+      </div>
+      <div
+        class="self-stretch text-base leading-normal text-center text-neutral-400"
+      >
+        Sign in to () below
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col items-center justify-center gap-6">
+    <button
+      class="w-[343px] px-4 py-3 inline-flex items-center justify-center gap-2 text-base leading-normal text-right text-neutral-700 bg-stone-200 rounded hover:bg-slate-200"
+      (click)="handleGoogleSignIn()"
+    >
+      <img src="../../../../assets/icons/google-icon-dark.svg" class="w-5" />
+      Sign In With Google
+    </button>
+    <div class="inline-flex items-center justify-center w-full text-center">
+      <hr class="w-2/6" />
+      <div class="w-2/6 text-base leading-normal text-neutral-700">
+        Or Sign in with
+      </div>
+      <hr class="w-2/6" />
+    </div>
+
+    <form [formGroup]="signInForm" class="w-full space-y-4">
+      <div class="flex flex-col">
+        <input
+          id="email"
+          formControlName="email"
+          type="email"
+          class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+          placeholder="Email"
+        />
+      </div>
+
+      <div class="flex flex-col">
+        <div class="relative w-full">
+          <input
+            id="password"
+            formControlName="password"
+            [type]="isPasswordVisible ? 'text' : 'password'"
+            class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+            placeholder="Password"
+          />
+          <span
+            class="text-placeholder absolute transform -translate-y-1/2 cursor-pointer right-4 top-1/2"
+            (click)="togglePasswordVisibility()"
+          >
+            {{ isPasswordVisible ? "Hide" : "Show" }}
+          </span>
+        </div>
+      </div>
+
+      <div class="text-right">
+        <a
+          href="#"
+          class="text-sm font-medium text-placeholder hover:text-secondary"
+          >Forgot Password</a
+        >
+      </div>
+    </form>
+  </div>
+
+  <div class="flex flex-col gap-3">
+    <div class="flex flex-col items-start justify-start gap-2">
+      <button
+        class="w-full py-2 text-base leading-snug text-center text-white capitalize rounded"
+        [ngClass]="{
+          'bg-disabled': signInForm.invalid,
+          'bg-secondary': !signInForm.invalid
+        }"
+        [disabled]="signInForm.invalid"
+        (click)="handleEmailSignIn()"
+      >
+        Sign In
+      </button>
+
+      <div
+        class="w-full text-base font-medium leading-snug text-center capitalize text-stone-700 hover:text-secondary hover:cursor-pointer"
+        (click)="handleNavigateToSignUp()"
+      >
+        Create Account
+      </div>
+    </div>
+    <div class="w-[343px] text-center">
+      <span class="text-sm font-thin leading-normal text-neutral-700"
+        >By using our site, you agree to the </span
+      ><span class="text-sm leading-normal text-blue-500"
+        >Terms Of Service, Privacy Policy</span
+      ><span class="text-sm leading-normal text-neutral-700"> </span
+      ><span class="text-sm font-thin leading-normal text-neutral-700">
+        and</span
+      ><span class="text-sm leading-normal text-blue-500">
+        Website Terms Of Use</span
+      >
+    </div>
+  </div>
+</div>

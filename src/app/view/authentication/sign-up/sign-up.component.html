@@ -1,0 +1,129 @@
+<div class="flex flex-col items-center justify-center w-full h-screen gap-14">
+  <div class="flex flex-col items-center gap-4">
+    <div class="justify-end items-start gap-0.5 inline-flex">
+      <div>
+        <img
+          src="../../../../assets/icons/google-icon-dark.svg"
+          alt="Logo"
+          class="w-16"
+        />
+      </div>
+    </div>
+    <div
+      class="self-stretch h-14 flex-col justify-start items-center gap-0.5 flex"
+    >
+      <div
+        class="self-stretch text-center text-neutral-700 text-xl font-bold leading-[30px]"
+      >
+        Register Now
+      </div>
+      <div
+        class="self-stretch text-base leading-normal text-center text-neutral-400"
+      >
+        Let's get your account going.
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col items-center gap-5 w-[343px]">
+    <button
+      class="inline-flex items-center justify-center w-full gap-2 px-4 py-3 text-base leading-normal text-right rounded text-neutral-700 bg-stone-200"
+      (click)="handleGoogleSignIn()"
+    >
+      <img src="../../../../assets/icons/google-icon-dark.svg" class="w-5" />
+      Sign Up With Google
+    </button>
+    <div class="inline-flex items-center justify-center w-full text-center">
+      <hr class="w-4/12" />
+      <div class="w-7/12 text-base leading-normal text-neutral-700">
+        Or Create Account
+      </div>
+      <hr class="w-4/12" />
+    </div>
+    <form
+      [formGroup]="signupForm"
+      class="flex flex-col w-full max-w-sm gap-2 rounded"
+    >
+      <input
+        formControlName="firstName"
+        class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+        id="firstName"
+        type="text"
+        placeholder="First Name"
+      />
+      <input
+        formControlName="lastName"
+        class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+        id="lastName"
+        type="text"
+        placeholder="Last Name"
+      />
+      <input
+        formControlName="email"
+        class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+        id="email"
+        type="email"
+        placeholder="Email"
+      />
+      <input
+        formControlName="phoneNumber"
+        class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+        id="phoneNumber"
+        type="tel"
+        placeholder="Phone Number"
+      />
+      <div class="flex flex-col mt-4">
+        <div class="relative w-full">
+          <input
+            id="password"
+            formControlName="password"
+            [type]="isPasswordVisible ? 'text' : 'password'"
+            class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+            placeholder="Password"
+          />
+          <span
+            class="absolute transform -translate-y-1/2 cursor-pointer text-placeholder right-4 top-1/2"
+            (click)="togglePasswordVisibility()"
+          >
+            {{ isPasswordVisible ? "Hide" : "Show" }}
+          </span>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <div class="relative w-full">
+          <input
+            id="confirmPassword"
+            formControlName="confirmPassword"
+            [type]="isPasswordVisible ? 'text' : 'password'"
+            class="w-full p-2 rounded bg-stone-200 focus:outline-none"
+            placeholder="Confirm Password"
+          />
+          <span
+            class="absolute transform -translate-y-1/2 cursor-pointer text-placeholder right-4 top-1/2"
+            (click)="togglePasswordVisibility()"
+          >
+            {{ isPasswordVisible ? "Hide" : "Show" }}
+          </span>
+        </div>
+      </div>
+    </form>
+    <div class="flex flex-col items-center justify-between w-full gap-1">
+      <button
+        class="w-full py-2 text-base leading-snug text-center text-white capitalize rounded"
+        [ngClass]="{
+          ' bg-disabled': signupForm.invalid,
+          'bg-secondary': !signupForm.invalid
+        }"
+        [disabled]="signupForm.invalid"
+        (click)="handleEmailSignUp()"
+      >
+        Sign Up
+      </button>
+      <div
+        class="w-full text-base font-medium leading-snug text-center capitalize text-stone-700 hover:text-secondary hover:cursor-pointer"
+        (click)="handleNavigateToSignIn()"
+      >
+        Sign In
+      </div>
+    </div>
+  </div>
+</div>
