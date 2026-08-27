@@ -1,0 +1,506 @@
+<div class="min-h-screen bg-ink flex flex-col">
+  <!-- Top Navigation Header -->
+  <header class="flex items-center justify-between px-6 py-4 border-b border-paper/10 bg-ink shrink-0">
+    <div class="flex items-center gap-3">
+      <a routerLink="/dashboard" class="flex items-center gap-2 text-paper hover:opacity-80 transition-opacity">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+          <circle cx="10" cy="9.5" r="3.2" fill="#E2883A" />
+          <line x1="12" y1="21" x2="20" y2="11" stroke="#E2883A" stroke-width="2.75" stroke-linecap="round" opacity="0.85" />
+          <circle cx="22" cy="22.5" r="3.2" fill="#E2883A" opacity="0.55" />
+        </svg>
+        <div>
+          <h1 class="font-display font-semibold text-sm tracking-wide text-paper">EU WORKME</h1>
+          <p class="text-xs text-paper/40">{{ authenticationService.user?.email }}</p>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2">
+      <a
+        routerLink="/dashboard"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Dashboard
+      </a>
+      <a
+        routerLink="/matches/other"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Other matches
+      </a>
+      <a
+        routerLink="/applications"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Applications
+      </a>
+      <a
+        routerLink="/companies"
+        class="px-3 py-1.5 text-xs font-medium text-ink bg-gold rounded transition-colors"
+      >
+        Companies
+      </a>
+      <a
+        routerLink="/admin"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Admin
+      </a>
+      <button
+        class="px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors"
+        (click)="authenticationService.signOut()"
+      >
+        Sign out
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI Ticker & Filter Toolbar -->
+  <div class="border-b border-paper/10 bg-paper/[0.02] px-6 py-3 shrink-0 flex flex-wrap items-center justify-between gap-4">
+    <!-- Search and Filters -->
+    <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+      <div class="relative flex-1 max-w-md">
+        <input
+          type="text"
+          class="w-full pl-8 pr-3 py-1.5 text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 placeholder:text-paper/30 focus:outline-none focus:border-gold/50"
+          placeholder="Search by company, role, skill, or city…"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="setSearchQuery($event)"
+        />
+        <svg class="absolute left-2.5 top-2 w-3.5 h-3.5 text-paper/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      <!-- Persona Filter Buttons -->
+      <div class="flex items-center bg-paper/[0.05] p-0.5 rounded border border-paper/10">
+        <button
+          class="px-2.5 py-1 text-xs font-medium rounded transition-colors"
+          [ngClass]="personaFilter() === 'all' ? 'bg-gold text-ink' : 'text-paper/60 hover:text-paper'"
+          (click)="setPersonaFilter('all')"
+        >
+          All
+        </button>
+        <button
+          class="px-2.5 py-1 text-xs font-medium rounded transition-colors"
+          [ngClass]="personaFilter() === 'philip' ? 'bg-gold text-ink' : 'text-paper/60 hover:text-paper'"
+          (click)="setPersonaFilter('philip')"
+        >
+          Philip
+        </button>
+        <button
+          class="px-2.5 py-1 text-xs font-medium rounded transition-colors"
+          [ngClass]="personaFilter() === 'chiara' ? 'bg-gold text-ink' : 'text-paper/60 hover:text-paper'"
+          (click)="setPersonaFilter('chiara')"
+        >
+          Chiara
+        </button>
+      </div>
+
+      <!-- Sort Dropdown -->
+      <label class="flex items-center gap-1.5 text-xs text-paper/50">
+        <span>Sort</span>
+        <select
+          class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1 focus:outline-none focus:border-gold/50"
+          [value]="sortKey()"
+          (change)="setSortKey($any($event.target).value)"
+        >
+          <option value="vacancies">Most Open Roles</option>
+          <option value="score">Highest Match Score</option>
+          <option value="applications">Most Applications</option>
+          <option value="salary">Highest Avg Salary</option>
+          <option value="name">Alphabetical</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- Quick Stats Ticker -->
+    <div class="hidden lg:flex items-center gap-4 text-xs font-mono text-paper/40">
+      <div>
+        <span class="text-paper num font-semibold">{{ totalCompaniesCount() }}</span> employers
+      </div>
+      <span>·</span>
+      <div>
+        <span class="text-gold num font-semibold">{{ totalWithApplicationsCount() }}</span> with applications
+      </div>
+      <span>·</span>
+      <div>
+        <span class="text-paper num font-semibold">{{ filteredCompanies().length }}</span> matching filter
+      </div>
+    </div>
+  </div>
+
+  <!-- Master-Detail Dual Pane Layout -->
+  <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+    <!-- LEFT PANE: Companies List / Directory -->
+    <div class="w-full md:w-[360px] lg:w-[400px] border-r border-paper/10 flex flex-col bg-ink/50 overflow-y-auto shrink-0">
+      <div *ngIf="filteredCompanies().length === 0" class="p-8 text-center text-xs text-paper/40">
+        No companies found matching your search.
+      </div>
+
+      <button
+        *ngFor="let company of filteredCompanies()"
+        (click)="selectCompany(company)"
+        class="w-full text-left p-4 border-b border-paper/5 transition-all flex flex-col gap-2 relative hover:bg-paper/[0.04]"
+        [ngClass]="selectedCompany()?.name === company.name ? 'bg-paper/[0.06] border-l-2 border-l-gold' : ''"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h3
+                class="text-sm font-medium truncate"
+                [ngClass]="selectedCompany()?.name === company.name ? 'text-gold' : 'text-paper'"
+              >
+                {{ company.name }}
+              </h3>
+              <span *ngIf="company.isTargetInstitution" class="text-[9px] px-1.5 py-0.5 rounded bg-gold/15 text-gold font-mono font-medium">
+                Target
+              </span>
+            </div>
+            <p class="text-xs text-paper/40 mt-0.5 truncate">
+              {{ company.locations.join(', ') || 'Luxembourg' }}
+            </p>
+          </div>
+
+          <!-- Top Match Badge -->
+          <span
+            *ngIf="company.topMatchScore > 0"
+            class="shrink-0 text-xs font-mono font-medium px-2 py-0.5 rounded num"
+            [ngClass]="company.topMatchScore >= topMatchThreshold ? 'bg-gold/15 text-gold' : 'bg-paper/10 text-paper/60'"
+          >
+            {{ company.topMatchScore }}%
+          </span>
+        </div>
+
+        <!-- Badges Bar -->
+        <div class="flex items-center justify-between text-xs text-paper/50 pt-1 border-t border-paper/5">
+          <div class="flex items-center gap-2">
+            <span class="num text-paper/80 font-medium">
+              {{ company.totalVacanciesCount }} <span class="text-paper/40 font-normal">job{{ company.totalVacanciesCount === 1 ? '' : 's' }}</span>
+            </span>
+            <span *ngIf="company.applicationsCount > 0" class="flex items-center gap-1 text-gold font-medium">
+              · <span class="num">{{ company.applicationsCount }}</span> app{{ company.applicationsCount === 1 ? '' : 's' }}
+            </span>
+          </div>
+
+          <!-- Matched Personas Pill -->
+          <div class="flex items-center gap-1 text-[10px]">
+            <span
+              *ngFor="let p of company.targetPersonas"
+              class="px-1.5 py-0.5 rounded text-[10px] uppercase font-mono"
+              [ngClass]="p === 'philip' ? 'bg-gold/10 text-gold' : 'bg-paper/10 text-paper/70'"
+            >
+              {{ p }}
+            </span>
+          </div>
+        </div>
+      </button>
+    </div>
+
+    <!-- RIGHT PANE: Selected Company Dossier & Intel -->
+    <div class="flex-1 flex flex-col min-h-0 bg-ink overflow-y-auto">
+      <div *ngIf="!selectedCompany()" class="p-12 text-center text-sm text-paper/30 my-auto">
+        Select an employer from the list to view its open vacancies, application pipeline, and intelligence.
+      </div>
+
+      <div *ngIf="selectedCompany()" class="p-6 max-w-4xl mx-auto w-full space-y-6">
+        <!-- Company Header Banner -->
+        <div class="p-6 rounded bg-paper/[0.03] border border-paper/10 relative overflow-hidden">
+          <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h2 class="font-display font-medium text-2xl text-paper tracking-tight">
+                  {{ selectedCompany()!.name }}
+                </h2>
+                <span *ngIf="selectedCompany()!.isTargetInstitution" class="px-2 py-0.5 rounded bg-gold/15 text-gold text-xs font-mono font-medium">
+                  Primary Target Institution
+                </span>
+              </div>
+              <p class="text-xs text-paper/50 mt-1">
+                Locations: <span class="text-paper/80">{{ selectedCompany()!.locations.join(' · ') || 'Luxembourg' }}</span> ·
+                Scraped via: <span class="font-mono text-paper/80">{{ selectedCompany()!.sources.join(', ') }}</span>
+              </p>
+            </div>
+
+            <!-- Matched Persona Pills -->
+            <div class="flex items-center gap-1.5 self-start">
+              <span
+                *ngFor="let p of selectedCompany()!.targetPersonas"
+                class="px-2 py-1 rounded text-xs font-medium uppercase font-mono"
+                [ngClass]="p === 'philip' ? 'bg-gold/15 text-gold' : 'bg-paper/10 text-paper/80'"
+              >
+                Target for {{ personaLabel(p) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Key Metrics Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-paper/10">
+            <div>
+              <span class="text-[10px] text-paper/40 uppercase tracking-wide block">Total Roles</span>
+              <span class="text-lg font-mono font-semibold text-paper num mt-0.5 block">
+                {{ selectedCompany()!.totalVacanciesCount }}
+              </span>
+              <span class="text-[11px] text-paper/40">
+                <span class="num text-gold font-medium">{{ selectedCompany()!.topTierCount }}</span> top-tier (≥80%)
+              </span>
+            </div>
+
+            <div>
+              <span class="text-[10px] text-paper/40 uppercase tracking-wide block">Peak Match Score</span>
+              <span class="text-lg font-mono font-semibold text-gold num mt-0.5 block">
+                {{ selectedCompany()!.topMatchScore }}%
+              </span>
+              <span class="text-[11px] text-paper/40">
+                Avg: <span class="num text-paper/70">{{ selectedCompany()!.avgMatchScore }}%</span>
+              </span>
+            </div>
+
+            <div>
+              <span class="text-[10px] text-paper/40 uppercase tracking-wide block">Estimated Salary</span>
+              <span class="text-lg font-mono font-semibold text-paper num mt-0.5 block">
+                {{ selectedCompany()!.avgSalary ? ('€' + (selectedCompany()!.avgSalary! | number)) : 'Unspecified' }}
+              </span>
+              <span class="text-[11px] text-paper/40">
+                {{ selectedCompany()!.salaryCount > 0 ? (selectedCompany()!.salaryCount + ' listed') : 'Market baseline' }}
+              </span>
+            </div>
+
+            <div>
+              <span class="text-[10px] text-paper/40 uppercase tracking-wide block">Applications</span>
+              <span
+                class="text-lg font-mono font-semibold text-paper num mt-0.5 block"
+                [ngClass]="selectedCompany()!.applicationsCount > 0 ? 'text-gold' : 'text-paper'"
+              >
+                {{ selectedCompany()!.applicationsCount }}
+              </span>
+              <span class="text-[11px] text-paper/40">
+                {{ selectedCompany()!.activeApplicationsCount }} active in pipeline
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Tabs Switcher -->
+        <div class="flex items-center gap-1 border-b border-paper/10 pb-2">
+          <button
+            class="px-3.5 py-1.5 text-xs font-medium rounded transition-colors flex items-center gap-1.5"
+            [ngClass]="detailTab() === 'vacancies' ? 'bg-gold text-ink' : 'text-paper/60 hover:text-paper'"
+            (click)="setDetailTab('vacancies')"
+          >
+            <span>Open Vacancies</span>
+            <span
+              class="num text-[11px] px-1.5 py-0.5 rounded"
+              [ngClass]="detailTab() === 'vacancies' ? 'bg-ink/20 text-ink' : 'bg-paper/10 text-paper/70'"
+            >
+              {{ selectedCompany()!.vacancies.length }}
+            </span>
+          </button>
+
+          <button
+            class="px-3.5 py-1.5 text-xs font-medium rounded transition-colors flex items-center gap-1.5"
+            [ngClass]="detailTab() === 'applications' ? 'bg-gold text-ink' : 'text-paper/60 hover:text-paper'"
+            (click)="setDetailTab('applications')"
+          >
+            <span>Applications & Dossiers</span>
+            <span
+              class="num text-[11px] px-1.5 py-0.5 rounded"
+              [ngClass]="detailTab() === 'applications' ? 'bg-ink/20 text-ink' : 'bg-paper/10 text-paper/70'"
+            >
+              {{ selectedCompany()!.applications.length }}
+            </span>
+          </button>
+
+          <button
+            class="px-3.5 py-1.5 text-xs font-medium rounded transition-colors flex items-center gap-1.5"
+            [ngClass]="detailTab() === 'intel' ? 'bg-gold text-ink' : 'text-paper/60 hover:text-paper'"
+            (click)="setDetailTab('intel')"
+          >
+            <span>Employer Intel</span>
+          </button>
+        </div>
+
+        <!-- TAB 1: OPEN VACANCIES -->
+        <div *ngIf="detailTab() === 'vacancies'" class="space-y-3">
+          <div *ngIf="selectedCompany()!.vacancies.length === 0" class="p-8 text-center text-xs text-paper/40">
+            No active vacancies recorded for this employer.
+          </div>
+
+          <div
+            *ngFor="let v of selectedCompany()!.vacancies"
+            class="p-4 rounded bg-paper/[0.02] border border-paper/10 hover:border-paper/20 transition-all flex flex-col gap-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span
+                    class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded font-medium"
+                    [ngClass]="v.matchedPersona === 'philip' ? 'bg-gold/15 text-gold' : 'bg-paper/10 text-paper/70'"
+                  >
+                    {{ personaLabel(v.matchedPersona) }}
+                  </span>
+                  <a
+                    [routerLink]="jobDetailUrl(v.jobId)"
+                    class="text-sm font-medium text-paper hover:text-gold transition-colors"
+                  >
+                    {{ v.title }}
+                  </a>
+                  <span *ngIf="v.shortageOccupationMatch" class="text-[10px] px-1.5 py-0.5 rounded bg-gold/15 text-gold font-medium">
+                    ADEM Shortage Boost
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-3 text-xs text-paper/40 mt-1.5 flex-wrap">
+                  <span *ngIf="v.location?.city">📍 {{ v.location.city }}</span>
+                  <span *ngIf="v.location?.allowsTelework" class="text-gold">🌐 Telework flexible</span>
+                  <span *ngIf="v.estimatedSalary" class="num text-paper/80 font-medium">💶 €{{ v.estimatedSalary | number }}</span>
+                  <span *ngIf="v.postedAt">📅 Posted {{ v.postedAt.toMillis() | date: 'MMM d, y' }}</span>
+                  <span *ngIf="v.applicationDeadline" class="text-signal-red">⏳ Due {{ v.applicationDeadline.toMillis() | date: 'MMM d, y' }}</span>
+                </div>
+              </div>
+
+              <!-- Score & Action -->
+              <div class="flex flex-col items-end gap-1.5 shrink-0">
+                <span
+                  class="text-sm font-mono font-medium px-2 py-0.5 rounded num"
+                  [ngClass]="(v.matchScore ?? 0) * 100 >= topMatchThreshold ? 'bg-gold/15 text-gold' : 'bg-paper/10 text-paper/60'"
+                >
+                  {{ (v.matchScore ?? 0) * 100 | number: '1.0-0' }}%
+                </span>
+                <a
+                  [routerLink]="jobDetailUrl(v.jobId)"
+                  class="text-xs text-gold hover:underline flex items-center gap-1"
+                >
+                  View Details →
+                </a>
+              </div>
+            </div>
+
+            <!-- Skills preview -->
+            <div *ngIf="v.extractedSkillLabels?.length" class="flex flex-wrap gap-1 pt-2 border-t border-paper/5">
+              <span
+                *ngFor="let skill of (v.extractedSkillLabels || []).slice(0, 5)"
+                class="px-2 py-0.5 rounded bg-paper/[0.04] text-[10px] text-paper/60"
+              >
+                {{ skill }}
+              </span>
+              <span *ngIf="(v.extractedSkillLabels || []).length > 5" class="text-[10px] text-paper/40 py-0.5">
+                +{{ (v.extractedSkillLabels || []).length - 5 }} more
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: APPLICATIONS & DOSSIERS -->
+        <div *ngIf="detailTab() === 'applications'" class="space-y-3">
+          <div *ngIf="selectedCompany()!.applications.length === 0" class="p-8 text-center text-xs text-paper/40 bg-paper/[0.02] rounded border border-paper/10">
+            No cover letters or applications generated for this company yet.
+          </div>
+
+          <div
+            *ngFor="let app of selectedCompany()!.applications"
+            class="p-4 rounded bg-paper/[0.02] border border-paper/10 flex flex-col gap-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded font-medium"
+                    [ngClass]="app.persona === 'philip' ? 'bg-gold/15 text-gold' : 'bg-paper/10 text-paper/70'"
+                  >
+                    {{ personaLabel(app.persona) }}
+                  </span>
+                  <a [routerLink]="jobDetailUrl(app.jobId)" class="text-sm font-medium text-paper hover:text-gold transition-colors">
+                    {{ app.vacancyTitle }}
+                  </a>
+                </div>
+                <p class="text-xs text-paper/40 mt-1">
+                  Application ID: <span class="font-mono text-paper/60">{{ app.applicationId }}</span> ·
+                  Created: {{ app.createdAt | date: 'MMM d, y' }}
+                </p>
+              </div>
+
+              <!-- Status Badge -->
+              <span
+                class="shrink-0 text-xs font-medium px-2.5 py-1 rounded"
+                [ngClass]="{
+                  'bg-paper/[0.06] text-paper/50': app.status === 'draft' || app.status === 'reviewed',
+                  'bg-gold/10 text-gold': app.status === 'submitted',
+                  'bg-signal-amber/10 text-signal-amber': app.status === 'interviewing',
+                  'bg-signal-green/10 text-signal-green': app.status === 'offer',
+                  'bg-signal-red/10 text-signal-red': app.status === 'rejected' || app.status === 'withdrawn'
+                }"
+              >
+                {{ statusLabel(app.status) }}
+              </span>
+            </div>
+
+            <!-- Generation Rationale Excerpt -->
+            <p *ngIf="app.generationRationale" class="text-xs text-paper/60 italic bg-paper/[0.02] p-2.5 rounded border border-paper/5">
+              "{{ app.generationRationale }}"
+            </p>
+
+            <div class="flex items-center justify-between pt-2 border-t border-paper/5 text-xs">
+              <span class="text-paper/40">
+                Aligned CV Bullets: <span class="num text-paper/70">{{ app.reorderedCvBullets.length || 0 }}</span>
+              </span>
+              <a [routerLink]="jobDetailUrl(app.jobId)" class="text-gold hover:underline">
+                Open Full Dossier →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: EMPLOYER INTELLIGENCE -->
+        <div *ngIf="detailTab() === 'intel'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- In-Demand Skills at this Employer -->
+          <div class="p-4 rounded bg-paper/[0.02] border border-paper/10 space-y-3">
+            <h3 class="text-xs font-medium text-paper/70 uppercase tracking-wide">Top Demanded Skills at {{ selectedCompany()!.name }}</h3>
+            <div *ngIf="selectedCompany()!.topSkills.length === 0" class="text-xs text-paper/40">
+              No skill tags extracted.
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span
+                *ngFor="let sk of selectedCompany()!.topSkills"
+                class="px-2.5 py-1 rounded-full bg-paper/[0.06] text-xs text-paper/80 flex items-center gap-1.5"
+              >
+                <span>{{ sk.skill }}</span>
+                <span class="num text-[10px] text-gold font-medium bg-gold/10 px-1 rounded">{{ sk.count }}</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Policy & Compensation Breakdown -->
+          <div class="p-4 rounded bg-paper/[0.02] border border-paper/10 space-y-3">
+            <h3 class="text-xs font-medium text-paper/70 uppercase tracking-wide">Policy & Workplace Insights</h3>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between py-1 border-b border-paper/5">
+                <span class="text-paper/50">Telework Policy:</span>
+                <span class="text-paper" [ngClass]="selectedCompany()!.hasTelework ? 'text-gold' : 'text-paper/70'">
+                  {{ selectedCompany()!.hasTelework ? (selectedCompany()!.teleworkCount + ' roles allow telework') : 'On-site required' }}
+                </span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-paper/5">
+                <span class="text-paper/50">ADEM Shortage Listings:</span>
+                <span class="text-paper num">
+                  {{ selectedCompany()!.shortageCount }} roles boosted
+                </span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-paper/5">
+                <span class="text-paper/50">Salary Range Observed:</span>
+                <span class="text-paper num">
+                  {{ selectedCompany()!.salaryMin ? ('€' + (selectedCompany()!.salaryMin! | number) + ' – €' + (selectedCompany()!.salaryMax! | number)) : 'Not publicly disclosed' }}
+                </span>
+              </div>
+              <div class="flex justify-between py-1">
+                <span class="text-paper/50">Recruiting Focus:</span>
+                <span class="text-paper">
+                  {{ selectedCompany()!.targetPersonas.join(' & ') || 'General market' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Functions, httpsCallable } from '@angular/fire/functions';
+import { Storage, ref, uploadBytes } from '@angular/fire/storage';
 import { PersonasService } from '../../services/personas.service';
 import { VacanciesService } from '../../services/vacancies.service';
 import { ApplicationsService } from '../../services/applications.service';
@@ -120,6 +121,7 @@ interface SeedResult {
 })
 export class AdminComponent {
   private functions = inject(Functions);
+  private storage = inject(Storage);
   private personasService = inject(PersonasService);
   private vacanciesService = inject(VacanciesService);
   private applicationsService = inject(ApplicationsService);
@@ -493,6 +495,12 @@ export class AdminComponent {
   savingCvBullets: PersonaId | null = null;
   cvSaveError: Record<string, string | null> = {};
 
+  // PDF CV upload → Gemini parse — see docs/status pattern from Task A.
+  // Populates cvBulletsDraft only; nothing is saved to Firestore until the
+  // human reviews the parsed result and clicks "Save CV content" below.
+  uploadingCv: Record<PersonaId, boolean> = { philip: false, chiara: false };
+  cvUploadError: Record<string, string | null> = {};
+
   initDraft(personaId: PersonaId, domains: string[]) {
     if (!this.draftInitialized[personaId]) {
       this.domainsDraft[personaId] = domains.join(', ');
@@ -524,11 +532,21 @@ export class AdminComponent {
       .filter(Boolean);
   }
 
+  setCvBulletEmployer(personaId: PersonaId, index: number, employer: string) {
+    this.cvBulletsDraft[personaId][index].employer = employer.trim() || null;
+  }
+
+  setCvBulletPeriod(personaId: PersonaId, index: number, period: string) {
+    this.cvBulletsDraft[personaId][index].period = period.trim() || null;
+  }
+
   addCvBullet(personaId: PersonaId) {
     this.cvBulletsDraft[personaId].push({
       id: `${personaId}-custom-${Date.now()}`,
       text: '',
       tags: [],
+      employer: null,
+      period: null,
     });
   }
 
@@ -557,6 +575,49 @@ export class AdminComponent {
       this.cvSaveError[personaId] = error instanceof Error ? error.message : String(error);
     } finally {
       this.savingCvBullets = null;
+    }
+  }
+
+  async uploadAndParseCv(personaId: PersonaId, input: EventTarget | null) {
+    const file = (input as HTMLInputElement | null)?.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      this.cvUploadError[personaId] = 'Please choose a PDF file.';
+      return;
+    }
+
+    this.uploadingCv[personaId] = true;
+    this.cvUploadError[personaId] = null;
+    try {
+      const storagePath = `jobslu/cv-uploads/${personaId}/${Date.now()}-${file.name}`;
+      await uploadBytes(ref(this.storage, storagePath), file, { contentType: 'application/pdf' });
+
+      const callable = httpsCallable<
+        { personaId: PersonaId; storagePath: string },
+        { personaId: PersonaId; bullets: { text: string; tags: string[]; employer: string | null; period: string | null }[] }
+      >(this.functions, 'adminParseCvPdf', { timeout: 120000 });
+      const response = await callable({ personaId, storagePath });
+
+      // Replaces the current draft outright — nothing in Firestore changes
+      // until "Save CV content" is clicked, so this is safe to try and
+      // discard (reload the page) if the parse looks off.
+      this.cvBulletsDraft[personaId] = response.data.bullets.map((b, i) => ({
+        id: `${personaId}-parsed-${Date.now()}-${i}`,
+        text: b.text,
+        tags: b.tags,
+        employer: b.employer,
+        period: b.period,
+      }));
+      this.cvDraftInitialized[personaId] = true;
+    } catch (error) {
+      this.cvUploadError[personaId] = error instanceof Error ? error.message : String(error);
+    } finally {
+      this.uploadingCv[personaId] = false;
+      if (input) {
+        (input as HTMLInputElement).value = '';
+      }
     }
   }
 

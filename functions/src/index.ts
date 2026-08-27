@@ -18,6 +18,7 @@ export { adminSeedReferenceData } from './admin/seedCallable';
 export { adminRunIngestion } from './admin/runIngestionCallable';
 export { adminUpdatePersonaDomains } from './admin/updatePersonaCallable';
 export { adminUpdatePersonaCvBullets } from './admin/updatePersonaCvBulletsCallable';
+export { adminParseCvPdf } from './admin/parseCvPdfCallable';
 
 // Vacancy management callables (dashboard/job-detail job card actions) —
 // allowlist-gated.

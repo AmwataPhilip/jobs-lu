@@ -62,5 +62,12 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     data: { authGuardPipe: redirectUnauthorizedToLogin },
   },
+  {
+    path: ROUTES.companies,
+    loadComponent: () =>
+      import('./view/companies/companies.component').then((m) => m.CompaniesComponent),
+    canActivate: [AuthGuard],
+    data: { authGuardPipe: redirectUnauthorizedToLogin },
+  },
 ];
 

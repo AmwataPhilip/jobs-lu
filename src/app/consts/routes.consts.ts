@@ -6,8 +6,14 @@ export const ROUTES = {
   jobs: 'jobs',
   otherMatches: 'matches/other',
   applications: 'applications',
+  companies: 'companies',
 };
 
 export function jobDetailUrl(jobId: string): string {
   return `/${ROUTES.jobs}/${jobId}`;
 }
+
+export function companyDetailUrl(companyName: string): string {
+  return `/${ROUTES.companies}?company=${encodeURIComponent(companyName)}`;
+}
+

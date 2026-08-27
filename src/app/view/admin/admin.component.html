@@ -1,9 +1,40 @@
 <div class="min-h-screen bg-ink px-6 py-8 max-w-5xl mx-auto">
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-between pb-4 border-b border-paper/10">
     <a routerLink="/dashboard" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
       ← Back to dashboard
     </a>
-    <span class="text-xs font-mono text-paper/30">Admin Console & Analytics</span>
+    <div class="flex items-center gap-2">
+      <a
+        routerLink="/dashboard"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Dashboard
+      </a>
+      <a
+        routerLink="/matches/other"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Other matches
+      </a>
+      <a
+        routerLink="/applications"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Applications
+      </a>
+      <a
+        routerLink="/companies"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Companies
+      </a>
+      <a
+        routerLink="/admin"
+        class="px-3 py-1.5 text-xs font-medium text-ink bg-gold rounded transition-colors"
+      >
+        Admin
+      </a>
+    </div>
   </div>
 
   <div class="mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -801,6 +832,22 @@
               [ngModel]="cvBulletTagsText(bullet)"
               (ngModelChange)="setCvBulletTags(persona.personaId, i, $event)"
             />
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                class="w-full px-2.5 py-1.5 text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
+                placeholder="Employer (optional)"
+                [ngModel]="bullet.employer"
+                (ngModelChange)="setCvBulletEmployer(persona.personaId, i, $event)"
+              />
+              <input
+                type="text"
+                class="w-full px-2.5 py-1.5 text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
+                placeholder="Period, e.g. 2021 – Present (optional)"
+                [ngModel]="bullet.period"
+                (ngModelChange)="setCvBulletPeriod(persona.personaId, i, $event)"
+              />
+            </div>
             <div class="mt-2 flex items-center gap-3">
               <button
                 type="button"

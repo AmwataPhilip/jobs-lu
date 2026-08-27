@@ -4,11 +4,14 @@ export interface CvBullet {
   id: string;
   text: string;
   tags: string[];
+  employer: string | null;
+  period: string | null;
 }
 
 export interface Persona {
   personaId: PersonaId;
   displayName: string;
+  contactEmail: string;
   domains: string[];
   coreSkills: string[];
   escoSkillUris: string[];

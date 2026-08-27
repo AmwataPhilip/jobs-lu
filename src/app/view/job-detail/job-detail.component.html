@@ -33,7 +33,15 @@
     <div class="flex items-start justify-between gap-4 mt-5">
       <div>
         <h1 class="font-display font-medium text-xl text-paper">{{ job.title }}</h1>
-        <p class="text-sm text-paper/60 mt-1">{{ job.employer }}</p>
+        <a
+          [routerLink]="['/companies']"
+          [queryParams]="{ company: job.employer }"
+          class="text-sm text-paper/70 hover:text-gold transition-colors mt-1 inline-flex items-center gap-1.5"
+          title="View all vacancies and applications for this company"
+        >
+          <span>{{ job.employer }}</span>
+          <span class="text-[11px] text-gold/70 hover:text-gold">🏢 View Company →</span>
+        </a>
         <p class="text-xs text-paper/30 mt-1">
           {{ job.location.city || job.location.country }}, {{ job.location.country }}
           <ng-container *ngIf="job.location.allowsTelework">

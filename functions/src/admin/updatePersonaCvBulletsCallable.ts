@@ -13,6 +13,10 @@ interface UpdatePersonaCvBulletsRequest {
   cvBullets: CvBullet[];
 }
 
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
 function isValidCvBullet(value: unknown): value is CvBullet {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -24,7 +28,9 @@ function isValidCvBullet(value: unknown): value is CvBullet {
     typeof bullet['text'] === 'string' &&
     bullet['text'].trim().length > 0 &&
     Array.isArray(bullet['tags']) &&
-    bullet['tags'].every((t) => typeof t === 'string')
+    bullet['tags'].every((t) => typeof t === 'string') &&
+    isNullableString(bullet['employer']) &&
+    isNullableString(bullet['period'])
   );
 }
 
@@ -50,13 +56,15 @@ export const adminUpdatePersonaCvBullets = onCall(
     ) {
       throw new HttpsError(
         'invalid-argument',
-        'Expected { personaId, cvBullets: { id: string, text: string, tags: string[] }[] }.'
+        'Expected { personaId, cvBullets: { id, text, tags: string[], employer: string | null, period: string | null }[] }.'
       );
     }
     const cleanBullets = cvBullets.map((b) => ({
       id: b.id.trim(),
       text: b.text.trim(),
       tags: b.tags.map((t) => t.trim()).filter(Boolean),
+      employer: b.employer?.trim() || null,
+      period: b.period?.trim() || null,
     }));
     if (cleanBullets.length === 0) {
       throw new HttpsError('invalid-argument', 'cvBullets must have at least one entry.');

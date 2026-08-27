@@ -58,6 +58,18 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // Raw CV PDFs uploaded for parsing (admin/parseCvPdfCallable.ts). Client
+    // writes directly (unlike applications/ above) so the upload can show
+    // progress; size/type-capped here to match MAX_PDF_BYTES in that
+    // callable. Deleting/replacing your own upload is fine — nothing else
+    // references the raw file once it's been parsed into a CV Content draft.
+    match /jobslu/cv-uploads/{personaId}/{fileName} {
+      allow read: if isAllowlisted();
+      allow write: if isAllowlisted()
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+    }
+
     // Everything else (any path not covered above, in any of the three
     // repos) is denied by default — Storage already denies by default with
     // no matching `allow`, this is just explicit.
