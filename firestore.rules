@@ -1,0 +1,145 @@
+rules_version = '2';
+
+// NOTE: This project (philipamwata-personal) is shared across multiple repos:
+// jobs-lu (EU WorkMe, this app), l-tz-drill, and witram-wed. Firestore only
+// ever has ONE live ruleset for the whole project — whichever repo deploys
+// last replaces it entirely — so this file merges all three repos' rules
+// rather than only scoping to jobslu_*. If you add a new collection for this
+// app, only touch the jobslu_* section below. If another repo's rules change,
+// re-sync this file from that repo before deploying, and vice versa.
+//
+// Do not deploy this file without confirming it matches (or intentionally
+// updates) whatever is currently live in the Firebase Console.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------------
+    // l-tz-drill — verbatim from that repo's firestore.rules.
+    // Blanket admin bypass: this UID (Philip) may read/write ANY document in
+    // the database. Intentionally broad and un-scoped in the source repo —
+    // preserved as-is here rather than narrowed, to avoid breaking that app.
+    // ---------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == "U4nK9OOuVAetWPv0QCV2HRbPaTr2";
+    }
+
+    // ---------------------------------------------------------------------
+    // witram-wed — verbatim from that repo's firestore.rules.
+    // ---------------------------------------------------------------------
+
+    // TODO: keep in sync with witram-wed's src/app/consts/admin.consts.ts ADMIN_UIDS.
+    function isWitramWedAdmin() {
+      return request.auth != null && request.auth.uid in [
+        'U4nK9OOuVAetWPv0QCV2HRbPaTr2', // Philip
+        // 'chiara-uid-here',
+      ];
+    }
+
+    // Public registry funds. Guests only ever read these; balances are
+    // mutated server-side (Stripe webhook) or by an authenticated admin
+    // (manual transfer approval).
+    match /funds/{fundId} {
+      allow read: if true;
+      allow write: if isWitramWedAdmin();
+    }
+
+    // Contains PII (email/phone) and the host-only private message, so
+    // guests never read this collection directly — the public-safe subset
+    // is mirrored into /guestWall. Guests may only create a *pending*
+    // manual-transfer record for themselves; stripe records are created
+    // server-side with the Admin SDK, which bypasses these rules entirely.
+    match /contributions/{contributionId} {
+      allow read: if isWitramWedAdmin();
+      allow create: if request.resource.data.paymentStatus == 'pending'
+        && request.resource.data.paymentMethod in ['mpesa', 'bank_transfer']
+        && request.resource.data.fundId is string
+        && exists(/databases/$(database)/documents/funds/$(request.resource.data.fundId))
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.currency in ['USD', 'EUR', 'KES']
+        && (!('isPinnedOnWall' in request.resource.data) || request.resource.data.isPinnedOnWall == false);
+      allow update, delete: if isWitramWedAdmin();
+    }
+
+    // Public-safe mirror of completed contributions' public messages,
+    // written by the Cloud Function trigger (Admin SDK) when a
+    // contribution's paymentStatus flips to 'completed'. Admins moderate
+    // (pin / hide) directly through client writes.
+    match /guestWall/{postId} {
+      // Public feed only sees non-hidden posts; admins can read everything
+      // (needed for the moderation tab, which lists hidden posts too so
+      // they can be un-hidden).
+      allow read: if resource.data.isHidden == false || isWitramWedAdmin();
+      allow write: if isWitramWedAdmin();
+    }
+
+    // "Where do you know us from?" world map pins. Guests write their own
+    // pin directly (no auth) — kept low-risk by size-capping every field
+    // and disallowing self-authored isHidden overrides.
+    match /connections/{connectionId} {
+      allow read: if resource.data.isHidden == false || isWitramWedAdmin();
+      allow create: if request.resource.data.countryCode is string
+        && request.resource.data.countryCode.size() > 0
+        && request.resource.data.countryCode.size() <= 8
+        && request.resource.data.countryName is string
+        && request.resource.data.countryName.size() > 0
+        && request.resource.data.countryName.size() <= 100
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 60))
+        && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 200))
+        && request.resource.data.isHidden == false;
+      allow update, delete: if isWitramWedAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // jobs-lu / EU WorkMe (this app) — scoped to the jobslu_* prefix.
+    // ---------------------------------------------------------------------
+
+    // Keep this in sync with functions/src/config/allowlist.ts.
+    function isAllowlisted() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          'philip@amwatatech.com',
+          'chiarawitry5@gmail.com'
+        ];
+    }
+
+    // Vacancies, personas, the shortage-occupation cache, generated
+    // applications, and ingestion run logs are all written exclusively by
+    // Cloud Functions using the Admin SDK, which bypasses these rules —
+    // clients only ever read them.
+    match /jobslu_vacancies/{jobId} {
+      allow read: if isAllowlisted();
+      allow write: if false;
+    }
+
+    match /jobslu_personas/{personaId} {
+      allow read: if isAllowlisted();
+      allow write: if false;
+    }
+
+    match /jobslu_shortage_occupations/{occupationId} {
+      allow read: if isAllowlisted();
+      allow write: if false;
+    }
+
+    match /jobslu_applications/{applicationId} {
+      allow read: if isAllowlisted();
+      allow write: if false;
+    }
+
+    match /jobslu_ingestion_runs/{runId} {
+      allow read: if isAllowlisted();
+      allow write: if false;
+    }
+
+    // Users may read/write only their own profile doc.
+    match /jobslu_users/{uid} {
+      allow read: if isAllowlisted();
+      allow write: if isAllowlisted() && request.auth.uid == uid;
+    }
+
+    // Everything else (any collection not covered above, in any of the
+    // three repos) is denied by default — Firestore already denies by
+    // default with no matching `allow`, this is just explicit.
+  }
+}

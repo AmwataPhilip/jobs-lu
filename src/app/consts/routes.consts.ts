@@ -1,9 +1,11 @@
 export const ROUTES = {
   authentication: {
-    signUp: 'sign-up',
     signIn: 'sign-in',
-    resetPassword: 'reset-password',
   },
-  placeholder: 'placeholder',
-  profileCompletion: 'profile-completion',
+  dashboard: 'dashboard',
+  jobs: 'jobs',
 };
+
+export function jobDetailUrl(jobId: string): string {
+  return `/${ROUTES.jobs}/${jobId}`;
+}

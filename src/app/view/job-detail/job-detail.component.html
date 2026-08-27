@@ -1,0 +1,107 @@
+<div class="min-h-screen bg-neutral-50 px-6 py-6 max-w-3xl mx-auto">
+  <a [routerLink]="dashboardUrl" class="text-sm text-neutral-400 hover:text-neutral-700">
+    ← Back to dashboard
+  </a>
+
+  <ng-container *ngIf="vacancy$ | async as job; else loading">
+    <div class="flex items-start justify-between gap-4 mt-4">
+      <div>
+        <h1 class="text-xl font-bold text-neutral-700">{{ job.title }}</h1>
+        <p class="text-neutral-500">{{ job.employer }}</p>
+        <p class="text-sm text-neutral-400">
+          {{ job.location.city || job.location.country }}, {{ job.location.country }}
+          <ng-container *ngIf="job.location.allowsTelework">
+            · remote up to {{ job.location.teleworkPercentageMax }}%
+          </ng-container>
+        </p>
+      </div>
+      <span class="shrink-0 text-sm font-medium px-3 py-2 rounded bg-stone-200 text-neutral-700">
+        {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}% match
+      </span>
+    </div>
+
+    <span
+      *ngIf="job.shortageOccupationMatch"
+      class="inline-block mt-3 text-xs font-medium px-2 py-1 rounded bg-blue-50 text-blue-700"
+    >
+      ADEM shortage occupation: {{ job.shortageOccupationMatch }}
+    </span>
+
+    <div *ngIf="job.estimatedSalary" class="mt-4 text-sm text-neutral-600">
+      Estimated salary: €{{ job.estimatedSalary | number: '1.0-0' }} / year
+    </div>
+
+    <div
+      *ngIf="job.location.allowsTelework"
+      class="mt-4 p-4 rounded border"
+      [ngClass]="{
+        'border-red-200 bg-red-50': job.compliance.ccssRisk === 'high' || job.compliance.taxRuleRisk === 'warning',
+        'border-amber-200 bg-amber-50': job.compliance.ccssRisk === 'warning' && job.compliance.taxRuleRisk === 'none',
+        'border-neutral-200 bg-neutral-100': job.compliance.ccssRisk === 'none' && job.compliance.taxRuleRisk === 'none'
+      }"
+    >
+      <h2 class="text-sm font-medium text-neutral-700 mb-2">Compliance health</h2>
+      <p *ngIf="job.compliance.ccssRisk === 'high'" class="text-sm text-red-700">
+        ⚠ Remote work up to {{ job.location.teleworkPercentageMax }}% is at or above the
+        49.9% CCSS threshold — social security affiliation may shift to the residence country.
+      </p>
+      <p *ngIf="job.compliance.ccssRisk === 'warning'" class="text-sm text-amber-700">
+        Remote work up to {{ job.location.teleworkPercentageMax }}% is approaching the
+        49.9% CCSS threshold for cross-border social security.
+      </p>
+      <p *ngIf="job.compliance.taxRuleRisk === 'warning'" class="text-sm text-red-700 mt-1">
+        ⚠ Estimated {{ job.compliance.estimatedAnnualRemoteDays }} remote days/year exceeds
+        the 34-day cross-border tax threshold by {{ job.compliance.daysOverLimit }} days —
+        may trigger dual taxation for France/Germany/Belgium residents.
+      </p>
+      <p
+        *ngIf="job.compliance.ccssRisk === 'none' && job.compliance.taxRuleRisk === 'none'"
+        class="text-sm text-neutral-500"
+      >
+        Estimated {{ job.compliance.estimatedAnnualRemoteDays }} remote days/year — within
+        both the CCSS and 34-day tax thresholds.
+      </p>
+    </div>
+
+    <div *ngIf="job.extractedSkillLabels?.length" class="mt-4">
+      <h2 class="text-sm font-medium text-neutral-700 mb-2">Requested skills</h2>
+      <div class="flex flex-wrap gap-2">
+        <span
+          *ngFor="let skill of job.extractedSkillLabels"
+          class="text-xs px-2 py-1 rounded bg-neutral-200 text-neutral-700"
+        >
+          {{ skill }}
+        </span>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <h2 class="text-sm font-medium text-neutral-700 mb-2">Description</h2>
+      <div class="text-sm text-neutral-600 whitespace-pre-line">{{ job.rawDescription }}</div>
+    </div>
+
+    <div
+      *ngIf="(application$ | async) as application"
+      class="mt-8 border-t border-neutral-200 pt-6"
+    >
+      <ng-container *ngIf="matchedPersona$ | async as persona">
+        <h2 class="text-sm font-medium text-neutral-700 mb-1">Generated application</h2>
+        <p class="text-xs text-neutral-400 mb-4">{{ application.generationRationale }}</p>
+
+        <h3 class="text-xs font-medium text-neutral-500 uppercase mb-2">Cover letter</h3>
+        <div class="text-sm text-neutral-600 whitespace-pre-line mb-6">{{ application.generatedCoverLetter }}</div>
+
+        <h3 class="text-xs font-medium text-neutral-500 uppercase mb-2">CV bullets, reordered</h3>
+        <ol class="list-decimal list-inside text-sm text-neutral-600 space-y-1">
+          <li *ngFor="let bulletId of application.reorderedCvBullets">
+            {{ resolveBulletText(persona, bulletId) }}
+          </li>
+        </ol>
+      </ng-container>
+    </div>
+  </ng-container>
+
+  <ng-template #loading>
+    <p class="mt-6 text-sm text-neutral-400">Loading…</p>
+  </ng-template>
+</div>

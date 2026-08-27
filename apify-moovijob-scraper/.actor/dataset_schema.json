@@ -1,0 +1,24 @@
+{
+    "$schema": "https://apify.com/schemas/v1/dataset.ide.json",
+    "actorSpecification": 1,
+    "fields": {},
+    "views": {
+        "overview": {
+            "title": "Overview",
+            "transformation": {
+                "fields": ["title", "employer", "city", "country", "estimatedSalary", "sourceUrl"]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "title": { "label": "Title", "format": "text" },
+                    "employer": { "label": "Employer", "format": "text" },
+                    "city": { "label": "City", "format": "text" },
+                    "country": { "label": "Country", "format": "text" },
+                    "estimatedSalary": { "label": "Salary", "format": "number" },
+                    "sourceUrl": { "label": "URL", "format": "link" }
+                }
+            }
+        }
+    }
+}

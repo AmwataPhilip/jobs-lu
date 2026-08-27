@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "philipamwata-personal"
+  },
+  "targets": {
+    "philipamwata-personal": {
+      "hosting": {
+        "eu-workme": [
+          "eu-workme"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

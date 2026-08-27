@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// NOTE: This project (philipamwata-personal) is shared across multiple repos:
+// jobs-lu (EU WorkMe, this app), l-tz-drill, and witram-wed. Storage only
+// ever has ONE live ruleset for the whole project — whichever repo deploys
+// last replaces it entirely — so this file merges all three repos' rules
+// rather than only scoping to jobslu/. If you add a new path for this app,
+// only touch the jobslu/ section below. If another repo's rules change,
+// re-sync this file from that repo before deploying, and vice versa.
+//
+// Do not deploy this file without confirming it matches (or intentionally
+// updates) whatever is currently live in the Firebase Console.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // -----------------------------------------------------------------
+    // witram-wed — verbatim from that repo's storage.rules.
+    //
+    // NOTE: unlike firestore.rules, the live Storage ruleset (confirmed via
+    // Firebase Console 2026-08-27) does NOT include l-tz-drill's blanket
+    // admin bypass — only this witram-wed block. l-tz-drill's local
+    // storage.rules file has one, but it isn't what's actually deployed, so
+    // it's intentionally left out here to match live reality. If that
+    // changes, re-sync from whatever's live, not from the repo file alone.
+    // -----------------------------------------------------------------
+
+    // TODO: keep in sync with witram-wed's src/app/consts/admin.consts.ts ADMIN_UIDS.
+    function isWitramWedAdmin() {
+      return request.auth != null && request.auth.uid in [
+        'U4nK9OOuVAetWPv0QCV2HRbPaTr2', // Philip
+        // 'chiara-uid-here',
+      ];
+    }
+
+    // Hero banners, couple photos, fund images — public read, admin upload only.
+    match /media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isWitramWedAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // jobs-lu / EU WorkMe (this app) — scoped to the jobslu/ prefix.
+    // -----------------------------------------------------------------
+
+    // Keep this in sync with functions/src/config/allowlist.ts.
+    function isAllowlisted() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          'philip@amwatatech.com',
+          'chiarawitry5@gmail.com'
+        ];
+    }
+
+    // Generated application documents (M5) are written by Cloud Functions
+    // using the Admin SDK, which bypasses these rules — clients only read.
+    match /jobslu/applications/{allPaths=**} {
+      allow read: if isAllowlisted();
+      allow write: if false;
+    }
+
+    // Everything else (any path not covered above, in any of the three
+    // repos) is denied by default — Storage already denies by default with
+    // no matching `allow`, this is just explicit.
+  }
+}

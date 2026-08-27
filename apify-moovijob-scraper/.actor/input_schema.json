@@ -1,0 +1,30 @@
+{
+    "$schema": "https://apify.com/schemas/v1/input.ide.json",
+    "title": "Moovijob.com Luxembourg Job Scraper Input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "startUrl": {
+            "title": "Start URL",
+            "type": "string",
+            "description": "Moovijob.com listing page to start from.",
+            "editor": "textfield",
+            "default": "https://en.moovijob.com/job-offers/jobs-luxembourg",
+            "prefill": "https://en.moovijob.com/job-offers/jobs-luxembourg"
+        },
+        "maxListPages": {
+            "title": "Max listing pages",
+            "type": "integer",
+            "description": "How many paginated listing pages to follow before stopping.",
+            "default": 20,
+            "minimum": 1
+        },
+        "maxRequestsPerCrawl": {
+            "title": "Max Requests per Crawl",
+            "type": "integer",
+            "description": "Safety cap on total requests (listing + detail pages) for this run.",
+            "default": 1000
+        }
+    },
+    "required": ["startUrl"]
+}

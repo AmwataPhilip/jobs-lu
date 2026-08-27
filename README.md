@@ -1,27 +1,47 @@
-# AngularFirebaseTemplate
+# EU WorkMe
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.2.1.
+A closed, two-user job aggregation and matching tool for Philip Amwata and Chiara Witry, focused on high-relevance roles in Luxembourg and the Greater Region.
 
-## Development server
+EU WorkMe pulls job listings from EURES and Luxembourg-specific sources, extracts skills and matches them against each person's profile using Gemini, flags Luxembourg cross-border tax/social-security compliance risk, and auto-drafts tailored applications for strong matches.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Stack
 
-## Code scaffolding
+- **Frontend:** Angular 18 + Tailwind CSS + GSAP, deployed to Firebase Hosting
+- **Backend:** Firebase Cloud Functions (2nd gen, TypeScript)
+- **Database:** Firestore, with native vector search for persona/job matching
+- **AI:** Gemini (skill extraction, embeddings, cover letter/CV generation)
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+The Firebase project (`philipamwata-personal`) is shared with other apps — see `firestore.rules`/`storage.rules` for how access is scoped, and `firebase.json` for the dedicated `jobslu` Functions codebase and `eu-workme` Hosting site/target used to avoid colliding with them.
 
-## Build
+## Development
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+Run `ng serve` for a dev server at `http://localhost:4200/`. By default (`environment.useEmulators: true`) it connects to the Firebase Emulator Suite rather than the live project — start that first:
 
-## Running unit tests
+```bash
+export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"  # emulators need Java 21+
+firebase emulators:start --only auth,firestore,functions
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Then seed persona/reference data into the emulator (needs `functions/.secret.local` with `GEMINI_API_KEY` set):
 
-## Running end-to-end tests
+```bash
+cd functions
+source <(grep -v '^#' .secret.local | sed 's/^/export /')
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=philipamwata-personal node lib/scripts/seed.js
+```
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+## Cloud Functions
 
-## Further help
+See `functions/src/`:
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+- `auth/blockingFunctions.ts` — Identity Platform allowlist enforcement
+- `ingestion/` — EURES + Silicon Luxembourg fetchers, Apify actor wrapper, daily orchestrator
+- `matching/` — ESCO skill extraction, embeddings, persona match scoring
+- `documents/` — auto-generated cover letters/CVs for high-scoring matches
+- `scripts/` — manual admin scripts (seed data, one-off pipeline runs), never deployed
+
+Build with `npm run build` inside `functions/`.
+
+## Deploying
+
+Nothing deploys automatically. Because this project is shared, always diff `firestore.rules`/`storage.rules` against the Firebase Console before deploying rules, and deploy Functions only under the `jobslu` codebase (`firebase deploy --only functions:jobslu`) so other apps' functions aren't touched.
