@@ -115,6 +115,32 @@
       <div class="text-sm text-paper/60 whitespace-pre-line leading-relaxed">{{ job.rawDescription }}</div>
     </div>
 
+    <div *ngIf="job.matchedPersona" class="mt-8 border-t border-paper/10 pt-6">
+      <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Tailored CV</h2>
+      <p class="text-xs text-paper/30 mb-4">
+        Generates a job-specific CV PDF from CV Content in the admin panel — Gemini selects and translates the
+        most relevant bullets, nothing is invented.
+      </p>
+      <div class="flex items-center gap-3">
+        <select
+          class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1.5 focus:outline-none focus:border-gold/50"
+          [ngModel]="selectedCvLanguage()"
+          (ngModelChange)="selectedCvLanguage.set($event)"
+        >
+          <option *ngFor="let lang of cvLanguages" [value]="lang">{{ lang }}</option>
+        </select>
+        <button
+          class="px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 disabled:opacity-40 transition-colors inline-flex items-center gap-2"
+          [disabled]="generatingCv()"
+          (click)="generateTailoredCv(job.jobId, job.matchedPersona)"
+        >
+          <span *ngIf="generatingCv()" class="inline-block w-3.5 h-3.5 border-2 border-paper border-t-transparent rounded-full animate-spin"></span>
+          {{ generatingCv() ? 'Generating…' : 'Generate CV (PDF)' }}
+        </button>
+      </div>
+      <p *ngIf="cvGenerationError()" class="mt-2 text-xs text-signal-red">{{ cvGenerationError() }}</p>
+    </div>
+
     <div
       *ngIf="(application$ | async) as application"
       class="mt-8 border-t border-paper/10 pt-6"

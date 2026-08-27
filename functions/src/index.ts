@@ -12,6 +12,7 @@ initializeApp();
 export { dailyIngestion } from './ingestion/scheduled';
 export { dailyReminderDigest } from './notifications/scheduled';
 export { autoGenerateApplication } from './documents/autoGenerateApplication';
+export { generateTailoredCv } from './documents/generateTailoredCvCallable';
 
 // Admin panel callables (src/app/view/admin/) — all allowlist-gated.
 export { adminSeedReferenceData } from './admin/seedCallable';

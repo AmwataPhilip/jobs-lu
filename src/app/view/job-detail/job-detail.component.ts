@@ -1,6 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import { map, of, switchMap } from 'rxjs';
 import { VacanciesService } from '../../services/vacancies.service';
 import { ApplicationsService } from '../../services/applications.service';
@@ -9,7 +11,10 @@ import { ComplianceService } from '../../services/compliance.service';
 import { VacancyActionsService } from '../../services/vacancy-actions.service';
 import { ROUTES } from '../../consts/routes.consts';
 import { ApplicationStatus } from '../../models/application.model';
+import { PersonaId } from '../../models/persona.model';
 import { APPLICATION_STATUSES } from '../applications/applications.component';
+
+export const CV_LANGUAGES = ['English', 'French', 'German'];
 
 // EURES descriptions are HTML (e.g. "<br><br>", "&amp;"). We never render
 // them as HTML (no innerHTML — XSS risk), just want readable plain text.
@@ -28,7 +33,7 @@ function stripDescriptionHtml(html: string): string {
 @Component({
   selector: 'app-job-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './job-detail.component.html',
 })
 export class JobDetailComponent {
@@ -39,11 +44,17 @@ export class JobDetailComponent {
   private personasService = inject(PersonasService);
   private complianceService = inject(ComplianceService);
   private vacancyActions = inject(VacancyActionsService);
+  private functions = inject(Functions);
 
   dashboardUrl = `/${ROUTES.dashboard}`;
   pendingDelete = signal(false);
   applicationStatuses = APPLICATION_STATUSES;
   statusNote = signal('');
+
+  cvLanguages = CV_LANGUAGES;
+  selectedCvLanguage = signal(CV_LANGUAGES[0]);
+  generatingCv = signal(false);
+  cvGenerationError = signal<string | null>(null);
 
   vacancy$ = this.route.paramMap.pipe(
     map((params) => params.get('jobId')!),
@@ -104,6 +115,35 @@ export class JobDetailComponent {
       this.router.navigateByUrl(this.dashboardUrl);
     } else {
       this.pendingDelete.set(true);
+    }
+  }
+
+  async generateTailoredCv(jobId: string, personaId: PersonaId) {
+    this.generatingCv.set(true);
+    this.cvGenerationError.set(null);
+    try {
+      const callable = httpsCallable<
+        { jobId: string; personaId: PersonaId; language: string },
+        { fileName: string; pdfBase64: string }
+      >(this.functions, 'generateTailoredCv', { timeout: 90000 });
+      const response = await callable({ jobId, personaId, language: this.selectedCvLanguage() });
+
+      const byteChars = atob(response.data.pdfBase64);
+      const bytes = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        bytes[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = response.data.fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      this.cvGenerationError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.generatingCv.set(false);
     }
   }
 }

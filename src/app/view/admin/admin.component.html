@@ -813,6 +813,30 @@
           <span class="text-[10px] font-mono text-paper/40 uppercase">{{ persona.personaId }}</span>
         </div>
 
+        <div class="mb-3 pb-3 border-b border-paper/10">
+          <label
+            class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors cursor-pointer"
+            [class.opacity-40]="uploadingCv[persona.personaId]"
+            [class.pointer-events-none]="uploadingCv[persona.personaId]"
+          >
+            <span *ngIf="uploadingCv[persona.personaId]" class="inline-block w-3.5 h-3.5 border-2 border-paper border-t-transparent rounded-full animate-spin"></span>
+            {{ uploadingCv[persona.personaId] ? 'Uploading & parsing…' : 'Upload CV (PDF)' }}
+            <input
+              type="file"
+              accept="application/pdf"
+              class="hidden"
+              [disabled]="uploadingCv[persona.personaId]"
+              (change)="uploadAndParseCv(persona.personaId, $event.target)"
+            />
+          </label>
+          <p class="mt-1.5 text-[11px] text-paper/30">
+            Replaces the draft below with Gemini-extracted bullets from the PDF — review before saving.
+          </p>
+          <p *ngIf="cvUploadError[persona.personaId]" class="mt-1.5 text-xs text-signal-red">
+            {{ cvUploadError[persona.personaId] }}
+          </p>
+        </div>
+
         <div class="space-y-3">
           <div
             *ngFor="let bullet of cvBulletsDraft[persona.personaId]; let i = index"
