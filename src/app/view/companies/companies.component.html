@@ -256,9 +256,9 @@
             </div>
 
             <div>
-              <span class="text-[10px] text-paper/40 uppercase tracking-wide block">Estimated Salary</span>
+              <span class="text-[10px] text-paper/50 uppercase tracking-wide block">Avg Annual Salary</span>
               <span class="text-lg font-mono font-semibold text-paper num mt-0.5 block">
-                {{ selectedCompany()!.avgSalary ? ('€' + (selectedCompany()!.avgSalary! | number)) : 'Unspecified' }}
+                {{ selectedCompany()!.avgSalary ? ('€' + (selectedCompany()!.avgSalary! | number) + '/yr') : 'Unspecified' }}
               </span>
               <span class="text-[11px] text-paper/40">
                 {{ selectedCompany()!.salaryCount > 0 ? (selectedCompany()!.salaryCount + ' listed') : 'Market baseline' }}

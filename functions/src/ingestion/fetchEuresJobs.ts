@@ -3,6 +3,7 @@ import { logger } from 'firebase-functions/v2';
 import { EURES_LOCATION_CODES } from '../config/euresLocations';
 import { Vacancy } from '../models/vacancy';
 import { sortByTitleRelevance } from './relevanceRanking';
+import { parseAndAnnualizeEuresSalary } from '../lib/salary';
 
 const SEARCH_URL =
   'https://europa.eu/eures/api/jv-searchengine/public/jv-search/search';
@@ -128,16 +129,7 @@ async function fetchDetail(
 
 function estimateSalary(profile: EuresJobProfile): number | null {
   const salary = profile.offeredRemunerationPackage?.salaries?.[0];
-  if (!salary) {
-    return null;
-  }
-  if (salary.referenceSalary != null) {
-    return salary.referenceSalary;
-  }
-  if (salary.minimumSalary != null && salary.maximumSalary != null) {
-    return (salary.minimumSalary + salary.maximumSalary) / 2;
-  }
-  return salary.minimumSalary ?? salary.maximumSalary ?? null;
+  return parseAndAnnualizeEuresSalary(salary);
 }
 
 async function getBackfillCursor(

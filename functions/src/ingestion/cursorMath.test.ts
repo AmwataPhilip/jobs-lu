@@ -1,5 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import {
+  annualizeSalary,
+  parseAndAnnualizeEuresSalary,
+  normalizeIntervalCode,
+} from '../lib/salary';
 
 export const RECENT_PAGES = 6;
 export const BACKFILL_PAGES_PER_RUN = 3;
@@ -12,24 +17,7 @@ export function computeNextBackfillCursor(
   return nextPage > totalPages ? recentPages + 1 : nextPage;
 }
 
-export function parseEuresSalary(salary: {
-  minimumSalary?: number | null;
-  maximumSalary?: number | null;
-  referenceSalary?: number | null;
-} | null | undefined): number | null {
-  if (!salary) {
-    return null;
-  }
-  if (salary.referenceSalary != null) {
-    return salary.referenceSalary;
-  }
-  if (salary.minimumSalary != null && salary.maximumSalary != null) {
-    return (salary.minimumSalary + salary.maximumSalary) / 2;
-  }
-  return salary.minimumSalary ?? salary.maximumSalary ?? null;
-}
-
-describe('EURES Ingestion Cursor & Salary Math', () => {
+describe('EURES Ingestion Cursor & Salary Annualization Math', () => {
   it('advances cursor by backfill batch size during normal sweep', () => {
     const startCursor = 7; // past RECENT_PAGES (6)
     const endCursor = startCursor + BACKFILL_PAGES_PER_RUN - 1; // 9
@@ -55,32 +43,56 @@ describe('EURES Ingestion Cursor & Salary Math', () => {
     assert.equal(nextCursor, 7);
   });
 
-  it('parses reference salary when explicitly provided', () => {
-    const result = parseEuresSalary({
+  it('annualizes monthly salary correctly (e.g. €5,500/mo -> €66,000/yr)', () => {
+    const result = parseAndAnnualizeEuresSalary({
+      referenceSalary: 5500,
+      payingIntervalCode: 'Month',
+    });
+    assert.equal(result, 66000);
+  });
+
+  it('annualizes hourly rates correctly (e.g. €45/hr -> €82,800/yr)', () => {
+    const result = parseAndAnnualizeEuresSalary({
+      minimumSalary: 40,
+      maximumSalary: 50,
+      payingIntervalCode: 'Hour',
+    });
+    assert.equal(result, 45 * 1840); // 82,800
+  });
+
+  it('leaves already annual salaries unchanged (e.g. €95,000/yr -> €95,000)', () => {
+    const result = parseAndAnnualizeEuresSalary({
       referenceSalary: 95000,
-      minimumSalary: 80000,
-      maximumSalary: 110000,
+      payingIntervalCode: 'Year',
     });
     assert.equal(result, 95000);
   });
 
+  it('heuristically annualizes monthly figures when payingIntervalCode is missing', () => {
+    const unannotatedMonthly = annualizeSalary(6000);
+    assert.equal(unannotatedMonthly, 72000); // 6000 * 12
+  });
+
+  it('heuristically annualizes hourly rates when payingIntervalCode is missing', () => {
+    const unannotatedHourly = annualizeSalary(50);
+    assert.equal(unannotatedHourly, 92000); // 50 * 1840
+  });
+
   it('computes midpoint when min and max salaries are provided', () => {
-    const result = parseEuresSalary({
+    const result = parseAndAnnualizeEuresSalary({
       referenceSalary: null,
       minimumSalary: 70000,
       maximumSalary: 90000,
+      payingIntervalCode: 'Year',
     });
     assert.equal(result, 80000);
   });
 
-  it('returns singular min or max when only one is present', () => {
-    assert.equal(parseEuresSalary({ minimumSalary: 75000, maximumSalary: null }), 75000);
-    assert.equal(parseEuresSalary({ minimumSalary: null, maximumSalary: 85000 }), 85000);
-  });
-
   it('returns null when salary object is empty or null', () => {
-    assert.equal(parseEuresSalary(null), null);
-    assert.equal(parseEuresSalary(undefined), null);
-    assert.equal(parseEuresSalary({}), null);
+    assert.equal(parseAndAnnualizeEuresSalary(null), null);
+    assert.equal(parseAndAnnualizeEuresSalary(undefined), null);
+    assert.equal(parseAndAnnualizeEuresSalary({}), null);
+    assert.equal(annualizeSalary(null), null);
+    assert.equal(annualizeSalary(0), null);
   });
 });

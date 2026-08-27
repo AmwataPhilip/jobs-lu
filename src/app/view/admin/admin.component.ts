@@ -12,6 +12,7 @@ import { CvBullet, PersonaId } from '../../models/persona.model';
 import { Vacancy } from '../../models/vacancy.model';
 import { JobApplication } from '../../models/application.model';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
+import { annualizeSalary } from '../../utils/salary.util';
 
 export type StatsTab = 'platform' | 'philip' | 'chiara' | 'comparison';
 
@@ -229,8 +230,9 @@ export class AdminComponent {
       if (v.shortageOccupationMatch) shortageCount++;
       if (v.location?.allowsTelework || (v.location?.teleworkPercentageMax ?? 0) > 0) teleworkCount++;
 
-      if (v.estimatedSalary && v.estimatedSalary > 0) {
-        salarySum += v.estimatedSalary;
+      const annualizedSal = annualizeSalary(v.estimatedSalary);
+      if (annualizedSal !== null) {
+        salarySum += annualizedSal;
         salaryCount++;
       }
 
@@ -396,8 +398,9 @@ export class AdminComponent {
       if (v.shortageOccupationMatch) shortageCount++;
       if (v.location?.allowsTelework || (v.location?.teleworkPercentageMax ?? 0) > 0) teleworkCount++;
 
-      if (v.estimatedSalary && v.estimatedSalary > 0) {
-        salarySum += v.estimatedSalary;
+      const annualizedSal = annualizeSalary(v.estimatedSalary);
+      if (annualizedSal !== null) {
+        salarySum += annualizedSal;
         salaryCount++;
       }
 

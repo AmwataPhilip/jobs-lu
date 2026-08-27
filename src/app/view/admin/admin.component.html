@@ -135,12 +135,12 @@
         </div>
 
         <div class="p-4 rounded bg-paper/[0.03] border border-paper/10">
-          <span class="text-[11px] text-paper/50 uppercase tracking-wide block">Avg Market Salary</span>
+          <span class="text-[11px] text-paper/50 uppercase tracking-wide block">Avg Market Salary (Annual)</span>
           <span class="text-2xl font-mono font-medium text-paper mt-1 block num">
-            {{ platformStats().avgMarketSalary ? ('€' + (platformStats().avgMarketSalary | number)) : 'N/A' }}
+            {{ platformStats().avgMarketSalary ? ('€' + (platformStats().avgMarketSalary | number) + '/yr') : 'N/A' }}
           </span>
           <span class="text-xs text-paper/40 mt-1 block">
-            <span class="num text-paper/70">{{ platformStats().salaryReportingCount }}</span> jobs with salary data ({{ platformStats().salaryReportingRate }}%)
+            <span class="num text-paper/70">{{ platformStats().salaryReportingCount }}</span> jobs reporting salary ({{ platformStats().salaryReportingRate }}%)
           </span>
         </div>
       </div>
@@ -336,12 +336,12 @@
         </div>
 
         <div class="p-4 rounded bg-paper/[0.03] border border-paper/10">
-          <span class="text-[11px] text-paper/50 uppercase tracking-wide block">Avg Matched Salary</span>
+          <span class="text-[11px] text-paper/50 uppercase tracking-wide block">Avg Matched Salary (Annual)</span>
           <span class="text-2xl font-mono font-medium text-paper mt-1 block num">
-            {{ philipStats().avgSalary ? ('€' + (philipStats().avgSalary | number)) : 'N/A' }}
+            {{ philipStats().avgSalary ? ('€' + (philipStats().avgSalary | number) + '/yr') : 'N/A' }}
           </span>
           <span class="text-xs text-paper/40 mt-1 block">
-            Baseline: <span class="num text-paper/70">€85,000</span> ({{ philipStats().salaryCount }} with salary)
+            Baseline: <span class="num text-paper/70">€85,000/yr</span> ({{ philipStats().salaryCount }} with salary)
           </span>
         </div>
       </div>
@@ -501,12 +501,12 @@
         </div>
 
         <div class="p-4 rounded bg-paper/[0.03] border border-paper/10">
-          <span class="text-[11px] text-paper/50 uppercase tracking-wide block">Avg Matched Salary</span>
+          <span class="text-[11px] text-paper/50 uppercase tracking-wide block">Avg Matched Salary (Annual)</span>
           <span class="text-2xl font-mono font-medium text-paper mt-1 block num">
-            {{ chiaraStats().avgSalary ? ('€' + (chiaraStats().avgSalary | number)) : 'N/A' }}
+            {{ chiaraStats().avgSalary ? ('€' + (chiaraStats().avgSalary | number) + '/yr') : 'N/A' }}
           </span>
           <span class="text-xs text-paper/40 mt-1 block">
-            Baseline: <span class="num text-paper/70">€80,000</span> ({{ chiaraStats().salaryCount }} with salary)
+            Baseline: <span class="num text-paper/70">€80,000/yr</span> ({{ chiaraStats().salaryCount }} with salary)
           </span>
         </div>
       </div>
@@ -664,8 +664,8 @@
               <span class="num font-medium text-paper">{{ philipStats().shortageCount }} ({{ philipStats().shortageRate }}%)</span>
             </div>
             <div class="flex justify-between py-1 border-b border-paper/5">
-              <span class="text-paper/60">Average Estimated Salary</span>
-              <span class="num font-medium text-paper">{{ philipStats().avgSalary ? ('€' + (philipStats().avgSalary | number)) : 'N/A' }}</span>
+              <span class="text-paper/60">Average Annual Salary</span>
+              <span class="num font-medium text-paper">{{ philipStats().avgSalary ? ('€' + (philipStats().avgSalary | number) + '/yr') : 'N/A' }}</span>
             </div>
             <div class="flex justify-between py-1 border-b border-paper/5">
               <span class="text-paper/60">Telework / Remote Rate</span>
@@ -708,8 +708,8 @@
               <span class="num font-medium text-paper">{{ chiaraStats().shortageCount }} ({{ chiaraStats().shortageRate }}%)</span>
             </div>
             <div class="flex justify-between py-1 border-b border-paper/5">
-              <span class="text-paper/60">Average Estimated Salary</span>
-              <span class="num font-medium text-paper">{{ chiaraStats().avgSalary ? ('€' + (chiaraStats().avgSalary | number)) : 'N/A' }}</span>
+              <span class="text-paper/60">Average Annual Salary</span>
+              <span class="num font-medium text-paper">{{ chiaraStats().avgSalary ? ('€' + (chiaraStats().avgSalary | number) + '/yr') : 'N/A' }}</span>
             </div>
             <div class="flex justify-between py-1 border-b border-paper/5">
               <span class="text-paper/60">Telework / Remote Rate</span>

@@ -12,6 +12,7 @@ import { JobApplication, ApplicationStatus } from '../../models/application.mode
 import { PersonaId } from '../../models/persona.model';
 import { jobDetailUrl } from '../../consts/routes.consts';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
+import { annualizeSalary } from '../../utils/salary.util';
 
 export type CompanySortKey = 'vacancies' | 'score' | 'applications' | 'salary' | 'name';
 export type CompanyPersonaFilter = 'all' | 'philip' | 'chiara';
@@ -184,8 +185,8 @@ export class CompaniesComponent implements OnInit {
           teleworkCount++;
         }
 
-        if (v.estimatedSalary && v.estimatedSalary > 0) {
-          const sal = v.estimatedSalary;
+        const sal = annualizeSalary(v.estimatedSalary);
+        if (sal !== null) {
           salarySum += sal;
           salaryCount++;
           if (salaryMin === null || sal < salaryMin) salaryMin = sal;
