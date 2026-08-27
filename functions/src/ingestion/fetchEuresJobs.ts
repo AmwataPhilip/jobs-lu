@@ -2,6 +2,7 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { EURES_LOCATION_CODES } from '../config/euresLocations';
 import { Vacancy } from '../models/vacancy';
+import { sortByTitleRelevance } from './relevanceRanking';
 
 const SEARCH_URL =
   'https://europa.eu/eures/api/jv-searchengine/public/jv-search/search';

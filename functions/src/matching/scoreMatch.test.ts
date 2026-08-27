@@ -31,10 +31,10 @@ describe('Match Score & Shortage Occupation Boost Math', () => {
     assert.equal(boosted, 1.0);
   });
 
-  it('crosses top-tier threshold (0.80) with shortage boost from 0.65', () => {
-    const base = 0.68; // 68% -> below 80% threshold
-    const boosted = calculateBoostedScore(base, true); // 68% + 15% = 83% -> top tier!
-    assert.ok(base < 0.8);
-    assert.ok(boosted >= 0.8);
+  it('crosses top-tier threshold (0.70) with shortage boost from 0.58', () => {
+    const base = 0.58; // 58% -> below 70% threshold
+    const boosted = calculateBoostedScore(base, true); // 58% + 15% = 73% -> top tier!
+    assert.ok(base < 0.7);
+    assert.ok(boosted >= 0.7);
   });
 });

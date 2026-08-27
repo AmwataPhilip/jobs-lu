@@ -20,7 +20,7 @@ const PERSONA_CONFIG: Record<PersonaId, { displayName: string; email: string }> 
   },
 };
 
-const TOP_MATCH_THRESHOLD = 0.8;
+const TOP_MATCH_THRESHOLD = 0.7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEADLINE_WINDOW_MS = 3 * DAY_MS;
 
@@ -228,7 +228,7 @@ function buildEmailPlainText(
   let text = `EU WORKME - Daily Digest for ${displayName}\n\n`;
 
   if (newMatches.length > 0) {
-    text += `=== NEW TOP-TIER MATCHES (≥80%) ===\n`;
+    text += `=== NEW TOP-TIER MATCHES (≥70%) ===\n`;
     for (const m of newMatches) {
       const score = Math.round((m.matchScore ?? 0) * 100);
       const salary = m.estimatedSalary ? ` (Est. €${m.estimatedSalary.toLocaleString('en-US')})` : '';

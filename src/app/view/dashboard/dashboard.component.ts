@@ -18,7 +18,7 @@ const PAGE_SIZE = 10;
 // ledger — they're still worth surfacing (salary/shortage/etc. can outweigh
 // a middling embedding similarity score), just not mixed into the primary,
 // match-score-ranked list. See other-matches.component.ts.
-export const TOP_MATCH_THRESHOLD = 80;
+export const TOP_MATCH_THRESHOLD = 70;
 
 @Component({
   selector: 'app-dashboard',
