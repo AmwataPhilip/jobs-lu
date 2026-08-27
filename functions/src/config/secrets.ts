@@ -12,3 +12,8 @@ export const GEMINI_API_KEY = defineSecret('JOBSLU_GEMINI_API_KEY');
 // Not yet available — functions/src/ingestion/fetchApifySource.ts checks
 // for this at runtime and skips gracefully if unset (M7).
 export const APIFY_TOKEN = defineSecret('JOBSLU_APIFY_TOKEN');
+
+// Set via: firebase functions:secrets:set JOBSLU_RESEND_API_KEY
+// Used by functions/src/notifications/sendDigest.ts to email daily match & deadline digests.
+export const RESEND_API_KEY = defineSecret('JOBSLU_RESEND_API_KEY');
+

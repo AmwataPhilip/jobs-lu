@@ -5,12 +5,6 @@ import {
   redirectUnauthorizedTo,
 } from '@angular/fire/auth-guard';
 import { ROUTES } from './consts/routes.consts';
-import { SignInComponent } from './view/authentication/sign-in/sign-in.component';
-import { DashboardComponent } from './view/dashboard/dashboard.component';
-import { JobDetailComponent } from './view/job-detail/job-detail.component';
-import { AdminComponent } from './view/admin/admin.component';
-import { OtherMatchesComponent } from './view/other-matches/other-matches.component';
-import { ApplicationsComponent } from './view/applications/applications.component';
 
 const redirectLoggedInToHome = () => redirectLoggedInTo([ROUTES.dashboard]);
 const redirectUnauthorizedToLogin = () =>
@@ -24,7 +18,8 @@ export const routes: Routes = [
   },
   {
     path: ROUTES.dashboard,
-    component: DashboardComponent,
+    loadComponent: () =>
+      import('./view/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [AuthGuard],
     data: {
       authGuardPipe: redirectUnauthorizedToLogin,
@@ -32,7 +27,8 @@ export const routes: Routes = [
   },
   {
     path: `${ROUTES.jobs}/:jobId`,
-    component: JobDetailComponent,
+    loadComponent: () =>
+      import('./view/job-detail/job-detail.component').then((m) => m.JobDetailComponent),
     canActivate: [AuthGuard],
     data: {
       authGuardPipe: redirectUnauthorizedToLogin,
@@ -40,26 +36,31 @@ export const routes: Routes = [
   },
   {
     path: ROUTES.authentication.signIn,
-    component: SignInComponent,
+    loadComponent: () =>
+      import('./view/authentication/sign-in/sign-in.component').then((m) => m.SignInComponent),
     canActivate: [AuthGuard],
     data: { authGuardPipe: redirectLoggedInToHome },
   },
   {
     path: 'admin',
-    component: AdminComponent,
+    loadComponent: () =>
+      import('./view/admin/admin.component').then((m) => m.AdminComponent),
     canActivate: [AuthGuard],
-    data: { authGuardPipe: redirectUnauthorizedToLogin },
+    data: { authGuardPipe: redirectUnauthorizedToLogin, preload: true },
   },
   {
     path: ROUTES.otherMatches,
-    component: OtherMatchesComponent,
+    loadComponent: () =>
+      import('./view/other-matches/other-matches.component').then((m) => m.OtherMatchesComponent),
     canActivate: [AuthGuard],
     data: { authGuardPipe: redirectUnauthorizedToLogin },
   },
   {
     path: ROUTES.applications,
-    component: ApplicationsComponent,
+    loadComponent: () =>
+      import('./view/applications/applications.component').then((m) => m.ApplicationsComponent),
     canActivate: [AuthGuard],
     data: { authGuardPipe: redirectUnauthorizedToLogin },
   },
 ];
+

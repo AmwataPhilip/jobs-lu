@@ -7,7 +7,7 @@ import { Functions, httpsCallable } from '@angular/fire/functions';
 import { PersonasService } from '../../services/personas.service';
 import { VacanciesService } from '../../services/vacancies.service';
 import { ApplicationsService } from '../../services/applications.service';
-import { PersonaId } from '../../models/persona.model';
+import { CvBullet, PersonaId } from '../../models/persona.model';
 import { Vacancy } from '../../models/vacancy.model';
 import { JobApplication } from '../../models/application.model';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
@@ -484,10 +484,79 @@ export class AdminComponent {
   savingPersona: PersonaId | null = null;
   personaSaveError: Record<string, string | null> = {};
 
+  // CV bullets editor — see docs/status/A.md. Replaces the hardcoded
+  // cvBullets array in functions/src/config/personas.ts with a Firestore-
+  // backed admin UI; documents/generateApplication.ts already reads from
+  // Firestore, so this needs no other pipeline changes.
+  cvBulletsDraft: Record<PersonaId, CvBullet[]> = { philip: [], chiara: [] };
+  cvDraftInitialized: Record<PersonaId, boolean> = { philip: false, chiara: false };
+  savingCvBullets: PersonaId | null = null;
+  cvSaveError: Record<string, string | null> = {};
+
   initDraft(personaId: PersonaId, domains: string[]) {
     if (!this.draftInitialized[personaId]) {
       this.domainsDraft[personaId] = domains.join(', ');
       this.draftInitialized[personaId] = true;
+    }
+  }
+
+  initCvDraft(personaId: PersonaId, cvBullets: CvBullet[]) {
+    if (!this.cvDraftInitialized[personaId]) {
+      // Deep-copy so in-progress edits don't mutate the live Firestore-synced
+      // persona object the template also reads from.
+      this.cvBulletsDraft[personaId] = cvBullets.map((b) => ({ ...b, tags: [...b.tags] }));
+      this.cvDraftInitialized[personaId] = true;
+    }
+  }
+
+  cvBulletTagsText(bullet: CvBullet): string {
+    return bullet.tags.join(', ');
+  }
+
+  setCvBulletText(personaId: PersonaId, index: number, text: string) {
+    this.cvBulletsDraft[personaId][index].text = text;
+  }
+
+  setCvBulletTags(personaId: PersonaId, index: number, tagsText: string) {
+    this.cvBulletsDraft[personaId][index].tags = tagsText
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  addCvBullet(personaId: PersonaId) {
+    this.cvBulletsDraft[personaId].push({
+      id: `${personaId}-custom-${Date.now()}`,
+      text: '',
+      tags: [],
+    });
+  }
+
+  removeCvBullet(personaId: PersonaId, index: number) {
+    this.cvBulletsDraft[personaId].splice(index, 1);
+  }
+
+  moveCvBullet(personaId: PersonaId, index: number, direction: -1 | 1) {
+    const draft = this.cvBulletsDraft[personaId];
+    const target = index + direction;
+    if (target < 0 || target >= draft.length) {
+      return;
+    }
+    [draft[index], draft[target]] = [draft[target], draft[index]];
+  }
+
+  async saveCvBullets(personaId: PersonaId) {
+    this.savingCvBullets = personaId;
+    this.cvSaveError[personaId] = null;
+    try {
+      const cvBullets = this.cvBulletsDraft[personaId].filter((b) => b.text.trim().length > 0);
+      const callable = httpsCallable(this.functions, 'adminUpdatePersonaCvBullets');
+      await callable({ personaId, cvBullets });
+      this.cvBulletsDraft[personaId] = cvBullets;
+    } catch (error) {
+      this.cvSaveError[personaId] = error instanceof Error ? error.message : String(error);
+    } finally {
+      this.savingCvBullets = null;
     }
   }
 
