@@ -18,6 +18,8 @@ const PAGE_SIZE = 10;
 // ledger — they're still worth surfacing (salary/shortage/etc. can outweigh
 // a middling embedding similarity score), just not mixed into the primary,
 // match-score-ranked list. See other-matches.component.ts.
+export type DashboardSortKey = 'matchScoreDesc' | 'matchScoreAsc' | 'postedAtDesc' | 'salaryDesc';
+
 export const TOP_MATCH_THRESHOLD = 70;
 
 @Component({
@@ -50,6 +52,7 @@ export class DashboardComponent implements AfterViewInit {
   // further within the top-tier list already shown here (e.g. "≥90 only").
   // Sub-threshold jobs never reach this list to begin with.
   minMatchScore = signal(TOP_MATCH_THRESHOLD);
+  sortBy = signal<DashboardSortKey>('matchScoreDesc');
   searchQuery = signal('');
   philipPage = signal(1);
   chiaraPage = signal(1);
@@ -63,23 +66,44 @@ export class DashboardComponent implements AfterViewInit {
     return haystack.includes(query);
   }
 
+  private sortVacancies(list: Vacancy[], sort: DashboardSortKey): Vacancy[] {
+    return [...list].sort((a, b) => {
+      switch (sort) {
+        case 'matchScoreAsc':
+          return (a.matchScore ?? 0) - (b.matchScore ?? 0);
+        case 'postedAtDesc': {
+          const timeA = a.postedAt ? a.postedAt.toMillis() : 0;
+          const timeB = b.postedAt ? b.postedAt.toMillis() : 0;
+          return timeB - timeA;
+        }
+        case 'salaryDesc':
+          return (b.estimatedSalary ?? 0) - (a.estimatedSalary ?? 0);
+        case 'matchScoreDesc':
+        default:
+          return (b.matchScore ?? 0) - (a.matchScore ?? 0);
+      }
+    });
+  }
+
   private philipFiltered = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
-    return this.philipVacancies().filter(
+    const filtered = this.philipVacancies().filter(
       (v) =>
         (v.matchScore ?? 0) * 100 >= TOP_MATCH_THRESHOLD &&
         (v.matchScore ?? 0) * 100 >= this.minMatchScore() &&
         this.matchesSearch(v, query)
     );
+    return this.sortVacancies(filtered, this.sortBy());
   });
   private chiaraFiltered = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
-    return this.chiaraVacancies().filter(
+    const filtered = this.chiaraVacancies().filter(
       (v) =>
         (v.matchScore ?? 0) * 100 >= TOP_MATCH_THRESHOLD &&
         (v.matchScore ?? 0) * 100 >= this.minMatchScore() &&
         this.matchesSearch(v, query)
     );
+    return this.sortVacancies(filtered, this.sortBy());
   });
 
   philipTotalPages = computed(() => Math.max(1, Math.ceil(this.philipFiltered().length / PAGE_SIZE)));
@@ -100,6 +124,12 @@ export class DashboardComponent implements AfterViewInit {
 
   setMinMatchScore(value: string | number) {
     this.minMatchScore.set(Number(value));
+    this.philipPage.set(1);
+    this.chiaraPage.set(1);
+  }
+
+  setSortBy(sort: string) {
+    this.sortBy.set(sort as DashboardSortKey);
     this.philipPage.set(1);
     this.chiaraPage.set(1);
   }

@@ -95,6 +95,7 @@
         [value]="sortKey()"
         (change)="setSortKey($any($event.target).value)"
       >
+        <option value="matchScore">Match score (highest)</option>
         <option value="postedAt">Posting date (newest)</option>
         <option value="deadline">Application deadline (soonest)</option>
         <option value="salary">Salary (highest)</option>

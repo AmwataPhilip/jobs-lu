@@ -13,7 +13,7 @@ type TaggedVacancy = Vacancy & { persona: PersonaId };
 
 export type OtherMatchesTab = 'other' | 'archived';
 export type PersonaFilter = 'both' | 'philip' | 'chiara';
-export type SortKey = 'postedAt' | 'deadline' | 'salary' | 'shortage';
+export type SortKey = 'matchScore' | 'postedAt' | 'deadline' | 'salary' | 'shortage';
 export type DateWindow = 'any' | '7' | '30';
 
 const PAGE_SIZE = 15;
@@ -50,7 +50,7 @@ export class OtherMatchesComponent {
 
   tab = signal<OtherMatchesTab>('other');
   personaFilter = signal<PersonaFilter>('both');
-  sortKey = signal<SortKey>('postedAt');
+  sortKey = signal<SortKey>('matchScore');
   postedWithin = signal<DateWindow>('any');
   deadlineWithin = signal<DateWindow>('any');
   searchQuery = signal('');
@@ -116,8 +116,10 @@ export class OtherMatchesComponent {
           (a, b) => (a.applicationDeadline?.toMillis() ?? Infinity) - (b.applicationDeadline?.toMillis() ?? Infinity)
         );
       case 'postedAt':
-      default:
         return list.sort((a, b) => (b.postedAt?.toMillis() ?? 0) - (a.postedAt?.toMillis() ?? 0));
+      case 'matchScore':
+      default:
+        return list.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
     }
   });
 

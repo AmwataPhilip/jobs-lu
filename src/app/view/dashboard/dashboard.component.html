@@ -87,6 +87,20 @@
       (input)="setSearchQuery($any($event.target).value)"
     />
 
+    <label class="flex items-center gap-1.5 text-xs text-paper/50 shrink-0">
+      <span>Sort</span>
+      <select
+        class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1 focus:outline-none focus:border-gold/50"
+        [value]="sortBy()"
+        (change)="setSortBy($any($event.target).value)"
+      >
+        <option value="matchScoreDesc">Highest Match (Default)</option>
+        <option value="matchScoreAsc">Lowest Match</option>
+        <option value="postedAtDesc">Most Recent</option>
+        <option value="salaryDesc">Highest Salary</option>
+      </select>
+    </label>
+
     <label class="flex items-center gap-3 shrink-0">
       <span class="text-xs text-paper/40 whitespace-nowrap">Min. match</span>
       <input
