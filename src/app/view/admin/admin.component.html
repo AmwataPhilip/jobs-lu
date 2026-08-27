@@ -761,6 +761,31 @@
     <p *ngIf="ingestionError" class="mt-4 text-sm text-signal-red">{{ ingestionError }}</p>
   </section>
 
+  <!-- Matching -->
+  <section class="mt-10 pt-6 border-t border-paper/10">
+    <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Matching</h2>
+    <p class="text-sm text-paper/40 mb-4">
+      Re-scores every matched/pending vacancy against current persona embeddings — no fetching, no Gemini calls
+      (pure vector math over embeddings that already exist), so it's safe to run any time. Use this after editing
+      CV content or domains above, since that regenerates the persona embedding but doesn't touch already-scored
+      vacancies on its own.
+    </p>
+    <button
+      class="px-4 py-2 text-sm font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 disabled:opacity-40 transition-colors inline-flex items-center gap-2"
+      [disabled]="rematchLoading"
+      (click)="rematchAll()"
+    >
+      <span *ngIf="rematchLoading" class="inline-block w-3.5 h-3.5 border-2 border-paper border-t-transparent rounded-full animate-spin"></span>
+      {{ rematchLoading ? 'Re-scoring…' : 'Re-score all vacancies' }}
+    </button>
+
+    <div *ngIf="rematchResult" class="mt-4 p-4 rounded bg-paper/[0.03] border border-paper/10 text-sm text-paper/70">
+      <span class="num text-paper font-medium">{{ rematchResult.rescored }}</span> re-scored ·
+      <span class="num text-paper/50">{{ rematchResult.errorCount }}</span> skipped (not yet embedded)
+    </div>
+    <p *ngIf="rematchError" class="mt-4 text-sm text-signal-red">{{ rematchError }}</p>
+  </section>
+
   <!-- Personas -->
   <section class="mt-10 pt-6 border-t border-paper/10">
     <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Personas & Matching Domains</h2>

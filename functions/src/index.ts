@@ -20,6 +20,7 @@ export { adminRunIngestion } from './admin/runIngestionCallable';
 export { adminUpdatePersonaDomains } from './admin/updatePersonaCallable';
 export { adminUpdatePersonaCvBullets } from './admin/updatePersonaCvBulletsCallable';
 export { adminParseCvPdf } from './admin/parseCvPdfCallable';
+export { adminRematchAll, adminRematchJob } from './admin/rematchCallable';
 
 // Vacancy management callables (dashboard/job-detail job card actions) —
 // allowlist-gated.

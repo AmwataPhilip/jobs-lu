@@ -51,6 +51,9 @@ export class JobDetailComponent {
   applicationStatuses = APPLICATION_STATUSES;
   statusNote = signal('');
 
+  rematching = signal(false);
+  rematchError = signal<string | null>(null);
+
   cvLanguages = CV_LANGUAGES;
   selectedCvLanguage = signal(CV_LANGUAGES[0]);
   generatingCv = signal(false);
@@ -115,6 +118,23 @@ export class JobDetailComponent {
       this.router.navigateByUrl(this.dashboardUrl);
     } else {
       this.pendingDelete.set(true);
+    }
+  }
+
+  async rematchJob(jobId: string) {
+    this.rematching.set(true);
+    this.rematchError.set(null);
+    try {
+      const callable = httpsCallable<{ jobId: string }, { rematched: boolean }>(
+        this.functions,
+        'adminRematchJob',
+        { timeout: 60000 }
+      );
+      await callable({ jobId });
+    } catch (error) {
+      this.rematchError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.rematching.set(false);
     }
   }
 

@@ -52,8 +52,16 @@
       <div class="shrink-0 text-right">
         <div class="num text-2xl font-medium text-gold">{{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}</div>
         <div class="text-[11px] text-paper/30 -mt-1">match</div>
+        <button
+          class="mt-1.5 text-[11px] text-paper/30 hover:text-paper disabled:opacity-40 transition-colors"
+          [disabled]="rematching()"
+          (click)="rematchJob(job.jobId)"
+        >
+          {{ rematching() ? 'Re-matching…' : 'Re-match' }}
+        </button>
       </div>
     </div>
+    <p *ngIf="rematchError()" class="mt-1 text-xs text-signal-red text-right">{{ rematchError() }}</p>
 
     <span
       *ngIf="job.shortageOccupationMatch"

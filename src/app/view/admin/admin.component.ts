@@ -479,6 +479,10 @@ export class AdminComponent {
   ingestionResult: IngestionResult | null = null;
   ingestionError: string | null = null;
 
+  rematchLoading = false;
+  rematchResult: { rescored: number; errorCount: number } | null = null;
+  rematchError: string | null = null;
+
   seedLoading = false;
   seedResult: SeedResult | null = null;
   seedError: string | null = null;
@@ -637,6 +641,29 @@ export class AdminComponent {
       this.ingestionError = error instanceof Error ? error.message : String(error);
     } finally {
       this.ingestionLoading = false;
+    }
+  }
+
+  async rematchAll() {
+    this.rematchLoading = true;
+    this.rematchError = null;
+    this.rematchResult = null;
+    try {
+      // No Gemini calls on this path (pure vector math over existing
+      // embeddings) — 540s isn't needed, but matching the ingestion
+      // callable's client timeout costs nothing and avoids surprises if the
+      // vacancy collection grows a lot.
+      const callable = httpsCallable<unknown, { rescored: number; errorCount: number }>(
+        this.functions,
+        'adminRematchAll',
+        { timeout: 300000 }
+      );
+      const response = await callable();
+      this.rematchResult = response.data;
+    } catch (error) {
+      this.rematchError = error instanceof Error ? error.message : String(error);
+    } finally {
+      this.rematchLoading = false;
     }
   }
 
