@@ -12,5 +12,7 @@ initializeApp();
 export { dailyIngestion } from './ingestion/scheduled';
 export { autoGenerateApplication } from './documents/autoGenerateApplication';
 
-// TEMPORARY (see admin/seedCallable.ts) — remove once production seeding is done.
+// Admin panel callables (src/app/view/admin/) — all allowlist-gated.
 export { adminSeedReferenceData } from './admin/seedCallable';
+export { adminRunIngestion } from './admin/runIngestionCallable';
+export { adminUpdatePersonaDomains } from './admin/updatePersonaCallable';

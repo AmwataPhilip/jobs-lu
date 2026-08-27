@@ -3,10 +3,12 @@ import { GEMINI_API_KEY } from '../config/secrets';
 import { isAllowlisted } from '../config/allowlist';
 import { seedReferenceData } from './seedReferenceData';
 
-// TEMPORARY — for the one-time production seed via a button in the app
-// (no Application Default Credentials were available to run scripts/seed.ts
-// directly against prod on 2026-08-27). Remove this file, its export in
-// index.ts, and the frontend admin-seed route once seeding is confirmed done.
+// Re-seeds persona profiles + the ADEM shortage-occupation list from the
+// version-controlled config (config/personas.ts, config/shortageOccupations.ts).
+// Was originally added as a one-time production seed (no Application Default
+// Credentials were available to run scripts/seed.ts directly against prod on
+// 2026-08-27); kept as a permanent admin panel action since re-seeding after
+// a config change is a real recurring need.
 export const adminSeedReferenceData = onCall(
   { secrets: [GEMINI_API_KEY] },
   async (request) => {

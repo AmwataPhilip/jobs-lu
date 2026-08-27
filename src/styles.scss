@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html,
+body {
+  @apply bg-ink text-paper font-sans antialiased;
+}
+
+::selection {
+  @apply bg-gold text-ink;
+}
+
+/* Every number in the app reads like ticker data — see the design notes. */
+.num {
+  @apply font-mono tabular-nums;
+}

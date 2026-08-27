@@ -8,9 +8,7 @@ import { ROUTES } from './consts/routes.consts';
 import { SignInComponent } from './view/authentication/sign-in/sign-in.component';
 import { DashboardComponent } from './view/dashboard/dashboard.component';
 import { JobDetailComponent } from './view/job-detail/job-detail.component';
-// TEMPORARY — see admin-seed.component.ts; remove this import + route below
-// once production seeding is confirmed done.
-import { AdminSeedComponent } from './view/admin-seed/admin-seed.component';
+import { AdminComponent } from './view/admin/admin.component';
 
 const redirectLoggedInToHome = () => redirectLoggedInTo([ROUTES.dashboard]);
 const redirectUnauthorizedToLogin = () =>
@@ -44,10 +42,9 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     data: { authGuardPipe: redirectLoggedInToHome },
   },
-  // TEMPORARY — remove once production seeding is confirmed done.
   {
-    path: 'admin-seed',
-    component: AdminSeedComponent,
+    path: 'admin',
+    component: AdminComponent,
     canActivate: [AuthGuard],
     data: { authGuardPipe: redirectUnauthorizedToLogin },
   },

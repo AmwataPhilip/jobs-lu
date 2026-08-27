@@ -1,7 +1,8 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { PERSONAS, Persona } from '../config/personas';
+import { PERSONAS } from '../config/personas';
 import { SHORTAGE_OCCUPATIONS } from '../config/shortageOccupations';
 import { embedText } from '../lib/gemini';
+import { personaEmbeddingText } from '../lib/personaEmbeddingText';
 
 const COLLECTIONS = {
   Personas: 'jobslu_personas',
@@ -19,18 +20,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
-function personaEmbeddingText(persona: Persona): string {
-  return [
-    persona.displayName,
-    persona.domains.join(', '),
-    persona.coreSkills.join(', '),
-    persona.targetRoles.join(', '),
-    persona.cvBullets.map((b) => b.text).join(' '),
-  ].join('\n');
-}
-
-// Shared by scripts/seed.ts (manual/emulator use) and admin/seedCallable.ts
-// (temporary production seed button — see index.ts for removal instructions).
+// Shared by scripts/seed.ts (manual/emulator use) and admin/seedCallable.ts.
 export async function seedReferenceData(geminiApiKey: string | undefined): Promise<{
   personaCount: number;
   shortageOccupationCount: number;

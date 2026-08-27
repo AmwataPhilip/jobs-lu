@@ -1,0 +1,89 @@
+<div class="min-h-screen bg-ink px-6 py-8 max-w-2xl mx-auto">
+  <a routerLink="/dashboard" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
+    ← Back to dashboard
+  </a>
+
+  <h1 class="font-display font-medium text-xl text-paper mt-4">Admin</h1>
+
+  <!-- Ingestion -->
+  <section class="mt-8 pt-6 border-t border-paper/10">
+    <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Ingestion</h2>
+    <p class="text-sm text-paper/40 mb-4">
+      Runs immediately instead of waiting for the 6am scheduled run.
+    </p>
+    <button
+      class="px-4 py-2 text-sm font-medium text-ink bg-gold rounded hover:bg-gold/90 disabled:opacity-40 transition-colors"
+      [disabled]="ingestionLoading"
+      (click)="runIngestion()"
+    >
+      {{ ingestionLoading ? 'Running…' : 'Run ingestion now' }}
+    </button>
+
+    <div *ngIf="ingestionResult" class="mt-4 text-sm text-paper/70 space-y-1">
+      <p>Status: <span class="num">{{ ingestionResult.status }}</span></p>
+      <p>Fetched <span class="num text-paper">{{ ingestionResult.jobsFetched }}</span> ·
+         New <span class="num text-paper">{{ ingestionResult.jobsNew }}</span> ·
+         Matched <span class="num text-paper">{{ ingestionResult.jobsMatched }}</span></p>
+      <p *ngFor="let s of ingestionResult.sourcesSkipped" class="text-paper/40 text-xs">
+        Skipped {{ s.source }}: {{ s.reason }}
+      </p>
+      <p *ngFor="let e of ingestionResult.errors" class="text-signal-red text-xs">
+        {{ e.source }}: {{ e.message }}
+      </p>
+    </div>
+    <p *ngIf="ingestionError" class="mt-4 text-sm text-signal-red">{{ ingestionError }}</p>
+  </section>
+
+  <!-- Personas -->
+  <section class="mt-8 pt-6 border-t border-paper/10">
+    <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Personas</h2>
+    <p class="text-sm text-paper/40 mb-4">
+      Editing domains regenerates that persona's match embedding.
+    </p>
+
+    <div *ngFor="let persona of (personas$ | async)" class="mb-5 last:mb-0">
+      <ng-container *ngIf="initDraft(persona.personaId, persona.domains)"></ng-container>
+      <label class="block text-sm font-medium text-paper mb-1.5">{{ persona.displayName }}</label>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          class="flex-1 px-3 py-2 text-sm bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
+          [(ngModel)]="domainsDraft[persona.personaId]"
+          placeholder="Comma-separated domains"
+        />
+        <button
+          class="px-4 py-2 text-sm font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 disabled:opacity-40 transition-colors"
+          [disabled]="savingPersona === persona.personaId"
+          (click)="savePersonaDomains(persona.personaId)"
+        >
+          {{ savingPersona === persona.personaId ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+      <p *ngIf="personaSaveError[persona.personaId]" class="mt-1.5 text-xs text-signal-red">
+        {{ personaSaveError[persona.personaId] }}
+      </p>
+    </div>
+  </section>
+
+  <!-- Reference data -->
+  <section class="mt-8 pt-6 border-t border-paper/10">
+    <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Reference data</h2>
+    <p class="text-sm text-paper/40 mb-4">
+      Re-seeds persona profiles and the ADEM shortage-occupation list from source config.
+    </p>
+    <button
+      class="px-4 py-2 text-sm font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 disabled:opacity-40 transition-colors"
+      [disabled]="seedLoading"
+      (click)="reseedReferenceData()"
+    >
+      {{ seedLoading ? 'Seeding…' : 'Reseed reference data' }}
+    </button>
+
+    <div *ngIf="seedResult" class="mt-4 text-sm text-paper/70">
+      <span class="num text-paper">{{ seedResult.personaCount }}</span> personas ·
+      <span class="num text-paper">{{ seedResult.shortageOccupationCount }}</span> shortage occupations ·
+      embeddings {{ seedResult.embeddingsWritten ? 'written' : 'skipped' }}
+    </div>
+    <p *ngIf="seedError" class="mt-4 text-sm text-signal-red">{{ seedError }}</p>
+  </section>
+</div>

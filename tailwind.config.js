@@ -2,16 +2,25 @@
 module.exports = {
   content: ["./src/**/*.{html,ts}"],
   theme: {
-    fontFamily: {
-      sans: ["Montserrat", "sans-serif"],
-    },
     extend: {
-      colors: {
-        primary: "#fe5919",
-        secondary: "#08bff3",
-        disabled: "#B5B5B5",
+      fontFamily: {
+        display: ["'Space Grotesk'", "sans-serif"],
+        sans: ["'IBM Plex Sans'", "sans-serif"],
+        mono: ["'IBM Plex Mono'", "monospace"],
       },
-      backgroundColor: { info: "#DAE2F2", error: "#F7E8E7" },
+      colors: {
+        ink: "#1A1310",
+        gold: "#E2883A",
+        paper: {
+          DEFAULT: "#F8F3E9",
+          dim: "#EFE6D6",
+        },
+        signal: {
+          red: "#C1432A",
+          green: "#5C8449",
+          amber: "#B8860B",
+        },
+      },
     },
   },
   plugins: [],

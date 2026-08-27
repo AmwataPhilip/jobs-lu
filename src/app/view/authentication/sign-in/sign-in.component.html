@@ -1,45 +1,33 @@
 <div
   #signInCard
-  class="flex flex-col items-center justify-center w-full h-screen gap-14"
+  class="flex flex-col items-center justify-center w-full h-screen gap-12 bg-ink"
 >
-  <div class="flex flex-col items-center gap-4">
-    <div class="justify-end items-start gap-0.5 inline-flex">
-      <div>
-        <img
-          src="../../../../assets/icons/google-icon-dark.svg"
-          alt=" Logo"
-          class="w-16"
-        />
-      </div>
-    </div>
-    <div
-      class="self-stretch h-14 flex-col justify-start items-center gap-0.5 flex"
-    >
-      <div
-        class="self-stretch text-center text-neutral-700 text-xl font-bold leading-[30px]"
-      >
+  <div class="flex flex-col items-center gap-5">
+    <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+      <circle cx="10" cy="9.5" r="3.2" fill="#E2883A" />
+      <line x1="12" y1="21" x2="20" y2="11" stroke="#E2883A" stroke-width="2.75" stroke-linecap="round" opacity="0.85" />
+      <circle cx="22" cy="22.5" r="3.2" fill="#E2883A" opacity="0.55" />
+    </svg>
+    <div class="flex flex-col items-center gap-2">
+      <h1 class="font-display font-semibold text-2xl tracking-tight text-paper">
         EU WorkMe
-      </div>
-      <div
-        class="self-stretch text-base leading-normal text-center text-neutral-400"
-      >
-        Private access only
-      </div>
+      </h1>
+      <p class="text-sm text-paper/50">Private access only</p>
     </div>
   </div>
 
-  <div class="flex flex-col items-center justify-center gap-4">
+  <div class="flex flex-col items-center gap-4">
     <button
-      class="w-[343px] px-4 py-3 inline-flex items-center justify-center gap-2 text-base leading-normal text-right text-neutral-700 bg-stone-200 rounded hover:bg-slate-200"
+      class="w-[300px] px-5 py-3 inline-flex items-center justify-center gap-3 text-sm font-medium text-ink bg-paper rounded hover:bg-paper-dim transition-colors"
       (click)="handleGoogleSignIn()"
     >
-      <img src="../../../../assets/icons/google-icon-dark.svg" class="w-5" />
-      Sign In With Google
+      <img src="../../../../assets/icons/google-icon-dark.svg" class="w-4" />
+      Sign in with Google
     </button>
 
     <div
       *ngIf="errorMessage"
-      class="w-[343px] px-4 py-2 text-sm text-center text-red-700 bg-red-50 border border-red-200 rounded"
+      class="w-[300px] px-4 py-2.5 text-sm text-center text-signal-red bg-signal-red/10 border border-signal-red/25 rounded"
     >
       {{ errorMessage }}
     </div>

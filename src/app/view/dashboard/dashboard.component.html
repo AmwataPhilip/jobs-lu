@@ -1,117 +1,138 @@
-<div class="min-h-screen bg-neutral-50">
-  <header class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-    <div>
-      <h1 class="text-lg font-bold text-neutral-700">EU WorkMe</h1>
-      <p class="text-sm text-neutral-400">
-        Signed in as {{ authenticationService.user?.email }}
-      </p>
+<div class="min-h-screen bg-ink">
+  <header class="flex items-center justify-between px-6 py-4 border-b border-paper/10">
+    <div class="flex items-center gap-3">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+        <circle cx="10" cy="9.5" r="3.2" fill="#E2883A" />
+        <line x1="12" y1="21" x2="20" y2="11" stroke="#E2883A" stroke-width="2.75" stroke-linecap="round" opacity="0.85" />
+        <circle cx="22" cy="22.5" r="3.2" fill="#E2883A" opacity="0.55" />
+      </svg>
+      <div>
+        <h1 class="font-display font-semibold text-sm tracking-wide text-paper">EU WORKME</h1>
+        <p class="text-xs text-paper/40">{{ authenticationService.user?.email }}</p>
+      </div>
     </div>
-    <button
-      class="px-4 py-2 text-sm rounded bg-stone-200 hover:bg-slate-200"
-      (click)="authenticationService.signOut()"
-    >
-      Sign Out
-    </button>
+    <div class="flex items-center gap-2">
+      <a
+        routerLink="/admin"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Admin
+      </a>
+      <button
+        class="px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors"
+        (click)="authenticationService.signOut()"
+      >
+        Sign out
+      </button>
+    </div>
   </header>
 
-  <div #board class="grid grid-cols-1 md:grid-cols-2 gap-px bg-neutral-200">
-    <section class="bg-neutral-50 p-6">
+  <div #board class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-paper/10">
+    <section>
       <ng-container *ngIf="philip$ | async as persona">
-        <h2 class="text-base font-bold text-neutral-700">{{ persona.displayName }}</h2>
-        <p class="text-sm text-neutral-400 mb-4">{{ persona.domains.join(' · ') }}</p>
+        <div class="px-6 py-4 border-b border-paper/10">
+          <h2 class="font-display font-medium text-base text-paper">{{ persona.displayName }}</h2>
+          <p class="text-xs text-paper/40 mt-0.5">{{ persona.domains.join(' · ') }}</p>
+        </div>
       </ng-container>
 
-      <div class="flex flex-col gap-3" *ngIf="philipVacancies$ | async as vacancies">
+      <div *ngIf="philipVacancies$ | async as vacancies">
         <a
           *ngFor="let job of vacancies"
           [routerLink]="jobDetailUrl(job.jobId)"
-          class="block p-4 bg-white rounded border border-neutral-200 hover:border-neutral-400 transition-colors"
+          class="flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
-          <div class="flex items-start justify-between gap-2">
-            <h3 class="font-medium text-neutral-700">{{ job.title }}</h3>
-            <span class="shrink-0 text-xs font-medium px-2 py-1 rounded bg-stone-200 text-neutral-700">
-              {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}%
-            </span>
+          <span class="num shrink-0 w-12 text-right text-base font-medium text-gold pt-0.5">
+            {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
+          </span>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-medium text-paper truncate">{{ job.title }}</h3>
+            <p class="text-xs text-paper/50 mt-0.5">{{ job.employer }}</p>
+            <p class="text-xs text-paper/30 mt-0.5">
+              {{ job.location.city || job.location.country }}
+              <ng-container *ngIf="job.location.allowsTelework">
+                · remote up to <span class="num">{{ job.location.teleworkPercentageMax }}</span>%
+              </ng-container>
+            </p>
+            <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="job.shortageOccupationMatch || job.status === 'applied' || (job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high')">
+              <span
+                *ngIf="job.shortageOccupationMatch"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-green/10 text-signal-green"
+              >
+                Shortage occupation
+              </span>
+              <span
+                *ngIf="job.status === 'applied'"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-gold/10 text-gold"
+              >
+                Application ready
+              </span>
+              <span
+                *ngIf="job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high'"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-red/10 text-signal-red"
+              >
+                CCSS risk
+              </span>
+            </div>
           </div>
-          <p class="text-sm text-neutral-500">{{ job.employer }}</p>
-          <p class="text-xs text-neutral-400">
-            {{ job.location.city || job.location.country }}
-            <ng-container *ngIf="job.location.allowsTelework">
-              · remote up to {{ job.location.teleworkPercentageMax }}%
-            </ng-container>
-          </p>
-          <span
-            *ngIf="job.shortageOccupationMatch"
-            class="inline-block mt-2 mr-2 text-xs font-medium px-2 py-1 rounded bg-blue-50 text-blue-700"
-          >
-            Shortage occupation
-          </span>
-          <span
-            *ngIf="job.status === 'applied'"
-            class="inline-block mt-2 mr-2 text-xs font-medium px-2 py-1 rounded bg-green-50 text-green-700"
-          >
-            Application ready
-          </span>
-          <span
-            *ngIf="job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high'"
-            class="inline-block mt-2 text-xs font-medium px-2 py-1 rounded bg-red-50 text-red-700"
-          >
-            CCSS risk
-          </span>
         </a>
 
-        <p *ngIf="vacancies.length === 0" class="text-sm text-neutral-400">
+        <p *ngIf="vacancies.length === 0" class="px-6 py-8 text-sm text-paper/30">
           No matched jobs yet.
         </p>
       </div>
     </section>
 
-    <section class="bg-neutral-50 p-6">
+    <section>
       <ng-container *ngIf="chiara$ | async as persona">
-        <h2 class="text-base font-bold text-neutral-700">{{ persona.displayName }}</h2>
-        <p class="text-sm text-neutral-400 mb-4">{{ persona.domains.join(' · ') }}</p>
+        <div class="px-6 py-4 border-b border-paper/10">
+          <h2 class="font-display font-medium text-base text-paper">{{ persona.displayName }}</h2>
+          <p class="text-xs text-paper/40 mt-0.5">{{ persona.domains.join(' · ') }}</p>
+        </div>
       </ng-container>
 
-      <div class="flex flex-col gap-3" *ngIf="chiaraVacancies$ | async as vacancies">
+      <div *ngIf="chiaraVacancies$ | async as vacancies">
         <a
           *ngFor="let job of vacancies"
           [routerLink]="jobDetailUrl(job.jobId)"
-          class="block p-4 bg-white rounded border border-neutral-200 hover:border-neutral-400 transition-colors"
+          class="flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
-          <div class="flex items-start justify-between gap-2">
-            <h3 class="font-medium text-neutral-700">{{ job.title }}</h3>
-            <span class="shrink-0 text-xs font-medium px-2 py-1 rounded bg-stone-200 text-neutral-700">
-              {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}%
-            </span>
+          <span class="num shrink-0 w-12 text-right text-base font-medium text-gold pt-0.5">
+            {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
+          </span>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-medium text-paper truncate">{{ job.title }}</h3>
+            <p class="text-xs text-paper/50 mt-0.5">{{ job.employer }}</p>
+            <p class="text-xs text-paper/30 mt-0.5">
+              {{ job.location.city || job.location.country }}
+              <ng-container *ngIf="job.location.allowsTelework">
+                · remote up to <span class="num">{{ job.location.teleworkPercentageMax }}</span>%
+              </ng-container>
+            </p>
+            <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="job.shortageOccupationMatch || job.status === 'applied' || (job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high')">
+              <span
+                *ngIf="job.shortageOccupationMatch"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-green/10 text-signal-green"
+              >
+                Shortage occupation
+              </span>
+              <span
+                *ngIf="job.status === 'applied'"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-gold/10 text-gold"
+              >
+                Application ready
+              </span>
+              <span
+                *ngIf="job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high'"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-red/10 text-signal-red"
+              >
+                CCSS risk
+              </span>
+            </div>
           </div>
-          <p class="text-sm text-neutral-500">{{ job.employer }}</p>
-          <p class="text-xs text-neutral-400">
-            {{ job.location.city || job.location.country }}
-            <ng-container *ngIf="job.location.allowsTelework">
-              · remote up to {{ job.location.teleworkPercentageMax }}%
-            </ng-container>
-          </p>
-          <span
-            *ngIf="job.shortageOccupationMatch"
-            class="inline-block mt-2 mr-2 text-xs font-medium px-2 py-1 rounded bg-blue-50 text-blue-700"
-          >
-            Shortage occupation
-          </span>
-          <span
-            *ngIf="job.status === 'applied'"
-            class="inline-block mt-2 mr-2 text-xs font-medium px-2 py-1 rounded bg-green-50 text-green-700"
-          >
-            Application ready
-          </span>
-          <span
-            *ngIf="job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high'"
-            class="inline-block mt-2 text-xs font-medium px-2 py-1 rounded bg-red-50 text-red-700"
-          >
-            CCSS risk
-          </span>
         </a>
 
-        <p *ngIf="vacancies.length === 0" class="text-sm text-neutral-400">
+        <p *ngIf="vacancies.length === 0" class="px-6 py-8 text-sm text-paper/30">
           No matched jobs yet.
         </p>
       </div>
