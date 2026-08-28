@@ -201,9 +201,14 @@ export async function fetchEuresJobs(runId: string): Promise<{
   const docRefs = uniqueResults.map((r) => db.collection(COLLECTIONS.Vacancies).doc(`eures_${r.id}`));
   const existingDocs = docRefs.length > 0 ? await db.getAll(...docRefs) : [];
   const existingIds = new Set(existingDocs.filter((d) => d.exists).map((d) => d.id));
-  const newResults = uniqueResults
-    .filter((r) => !existingIds.has(`eures_${r.id}`))
-    .slice(0, MAX_NEW_JOBS_PER_RUN);
+  // Prioritize (never exclude) candidates whose title overlaps Philip's/
+  // Chiara's domains, skills, and target roles — see relevanceRanking.ts for
+  // why an EURES-side occupationUris/sectorCodes filter isn't used instead.
+  // Zero-hit titles (casino/bakery/temp-agency noise) sort last but are still
+  // processed once budget allows, so nothing is ever permanently missed.
+  const newResults = sortByTitleRelevance(
+    uniqueResults.filter((r) => !existingIds.has(`eures_${r.id}`))
+  ).slice(0, MAX_NEW_JOBS_PER_RUN);
 
   let upserted = 0;
   const newJobIds: string[] = [];
