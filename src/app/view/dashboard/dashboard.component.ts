@@ -10,6 +10,7 @@ import { VacancyActionsService } from '../../services/vacancy-actions.service';
 import { assessCompliance } from '../../services/compliance.service';
 import { jobDetailUrl } from '../../consts/routes.consts';
 import { Vacancy } from '../../models/vacancy.model';
+import { AppHeaderComponent } from '../../components/app-header/app-header.component';
 
 export type DashboardViewMode = 'both' | 'philip' | 'chiara';
 
@@ -25,7 +26,7 @@ export const TOP_MATCH_THRESHOLD = 70;
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AppHeaderComponent],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements AfterViewInit {

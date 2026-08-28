@@ -1,50 +1,9 @@
 <div class="min-h-screen bg-ink">
-  <header class="flex flex-wrap items-center justify-between gap-y-2 px-4 sm:px-6 py-4 border-b border-paper/10">
-    <div>
-      <a routerLink="/dashboard" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
-        ← Back to dashboard
-      </a>
-      <h1 class="font-display font-medium text-base text-paper mt-1">Applications</h1>
-    </div>
-    <div class="flex flex-wrap items-center gap-2">
-      <a
-        routerLink="/dashboard"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Dashboard
-      </a>
-      <a
-        routerLink="/matches/other"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Other matches
-      </a>
-      <a
-        routerLink="/applications"
-        class="px-3 py-1.5 text-xs font-medium text-ink bg-gold rounded transition-colors"
-      >
-        Applications
-      </a>
-      <a
-        routerLink="/companies"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Companies
-      </a>
-      <a
-        routerLink="/profiles"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Profiles
-      </a>
-      <a
-        routerLink="/admin"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Admin
-      </a>
-    </div>
-  </header>
+  <app-header></app-header>
+
+  <div class="px-4 sm:px-6 pt-4">
+    <h1 class="font-display font-medium text-base text-paper">Applications</h1>
+  </div>
 
   <div class="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3 border-b border-paper/10">
     <label class="flex items-center gap-2">

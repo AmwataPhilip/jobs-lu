@@ -1,0 +1,146 @@
+<header class="relative border-b border-paper/10 bg-ink">
+  <div class="flex items-center justify-between px-4 sm:px-6 py-4">
+    <a routerLink="/dashboard" class="flex items-center gap-3 text-paper hover:opacity-80 transition-opacity" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" class="shrink-0">
+        <circle cx="10" cy="9.5" r="3.2" fill="#E2883A" />
+        <line x1="12" y1="21" x2="20" y2="11" stroke="#E2883A" stroke-width="2.75" stroke-linecap="round" opacity="0.85" />
+        <circle cx="22" cy="22.5" r="3.2" fill="#E2883A" opacity="0.55" />
+      </svg>
+      <div>
+        <h1 class="font-display font-semibold text-sm tracking-wide text-paper">EU WORKME</h1>
+        <p class="text-xs text-paper/40 hidden sm:block">{{ authenticationService.user?.email }}</p>
+      </div>
+    </a>
+
+    <!-- Desktop nav -->
+    <nav class="hidden md:flex items-center gap-2">
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="text-ink bg-gold"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+      >
+        Dashboard
+      </a>
+      <a
+        routerLink="/matches/other"
+        routerLinkActive="text-ink bg-gold"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+      >
+        Other matches
+      </a>
+      <a
+        routerLink="/applications"
+        routerLinkActive="text-ink bg-gold"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+      >
+        Applications
+      </a>
+      <a
+        routerLink="/companies"
+        routerLinkActive="text-ink bg-gold"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+      >
+        Companies
+      </a>
+      <a
+        routerLink="/profiles"
+        routerLinkActive="text-ink bg-gold"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+      >
+        Profiles
+      </a>
+      <a
+        routerLink="/admin"
+        routerLinkActive="text-ink bg-gold"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+      >
+        Admin
+      </a>
+      <button
+        class="px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors"
+        (click)="authenticationService.signOut()"
+      >
+        Sign out
+      </button>
+    </nav>
+
+    <!-- Mobile hamburger toggle -->
+    <button
+      class="md:hidden p-2 -mr-2 text-paper/70 hover:text-paper transition-colors"
+      (click)="toggleMenu()"
+      [attr.aria-expanded]="menuOpen()"
+      aria-label="Toggle menu"
+    >
+      <svg *ngIf="!menuOpen()" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="3" y1="12" x2="21" y2="12" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+      </svg>
+      <svg *ngIf="menuOpen()" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="6" y1="6" x2="18" y2="18" />
+        <line x1="6" y1="18" x2="18" y2="6" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile menu panel -->
+  <nav
+    *ngIf="menuOpen()"
+    class="md:hidden absolute left-0 right-0 top-full z-20 bg-ink border-b border-paper/10 shadow-lg flex flex-col px-4 py-2"
+  >
+    <a
+      routerLink="/dashboard"
+      routerLinkActive="text-ink bg-gold"
+      class="px-3 py-2.5 text-sm font-medium text-paper/70 hover:text-paper rounded transition-colors"
+      (click)="closeMenu()"
+    >
+      Dashboard
+    </a>
+    <a
+      routerLink="/matches/other"
+      routerLinkActive="text-ink bg-gold"
+      class="px-3 py-2.5 text-sm font-medium text-paper/70 hover:text-paper rounded transition-colors"
+      (click)="closeMenu()"
+    >
+      Other matches
+    </a>
+    <a
+      routerLink="/applications"
+      routerLinkActive="text-ink bg-gold"
+      class="px-3 py-2.5 text-sm font-medium text-paper/70 hover:text-paper rounded transition-colors"
+      (click)="closeMenu()"
+    >
+      Applications
+    </a>
+    <a
+      routerLink="/companies"
+      routerLinkActive="text-ink bg-gold"
+      class="px-3 py-2.5 text-sm font-medium text-paper/70 hover:text-paper rounded transition-colors"
+      (click)="closeMenu()"
+    >
+      Companies
+    </a>
+    <a
+      routerLink="/profiles"
+      routerLinkActive="text-ink bg-gold"
+      class="px-3 py-2.5 text-sm font-medium text-paper/70 hover:text-paper rounded transition-colors"
+      (click)="closeMenu()"
+    >
+      Profiles
+    </a>
+    <a
+      routerLink="/admin"
+      routerLinkActive="text-ink bg-gold"
+      class="px-3 py-2.5 text-sm font-medium text-paper/70 hover:text-paper rounded transition-colors"
+      (click)="closeMenu()"
+    >
+      Admin
+    </a>
+    <button
+      class="mt-1 px-3 py-2.5 text-sm font-medium text-left text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors"
+      (click)="authenticationService.signOut(); closeMenu()"
+    >
+      Sign out
+    </button>
+  </nav>
+</header>

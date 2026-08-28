@@ -8,6 +8,7 @@ import { PersonaId } from '../../models/persona.model';
 import { Vacancy } from '../../models/vacancy.model';
 import { jobDetailUrl } from '../../consts/routes.consts';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
+import { AppHeaderComponent } from '../../components/app-header/app-header.component';
 
 type TaggedVacancy = Vacancy & { persona: PersonaId };
 
@@ -22,7 +23,7 @@ const DAY_MS = 86400000;
 @Component({
   selector: 'app-other-matches',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AppHeaderComponent],
   templateUrl: './other-matches.component.html',
 })
 export class OtherMatchesComponent {

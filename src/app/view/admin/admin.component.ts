@@ -13,6 +13,7 @@ import { Vacancy } from '../../models/vacancy.model';
 import { JobApplication } from '../../models/application.model';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
 import { annualizeSalary } from '../../utils/salary.util';
+import { AppHeaderComponent } from '../../components/app-header/app-header.component';
 
 export type StatsTab = 'platform' | 'philip' | 'chiara' | 'comparison';
 
@@ -117,7 +118,7 @@ interface SeedResult {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AppHeaderComponent],
   templateUrl: './admin.component.html',
 })
 export class AdminComponent {

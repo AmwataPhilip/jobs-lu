@@ -8,6 +8,7 @@ import { ApplicationStatus, JobApplication } from '../../models/application.mode
 import { Vacancy } from '../../models/vacancy.model';
 import { PersonaId } from '../../models/persona.model';
 import { jobDetailUrl } from '../../consts/routes.consts';
+import { AppHeaderComponent } from '../../components/app-header/app-header.component';
 
 type StatusFilter = ApplicationStatus | 'all';
 type PersonaFilter = 'both' | PersonaId;
@@ -34,7 +35,7 @@ export const APPLICATION_STATUSES: ApplicationStatus[] = [
 @Component({
   selector: 'app-applications',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AppHeaderComponent],
   templateUrl: './applications.component.html',
 })
 export class ApplicationsComponent {

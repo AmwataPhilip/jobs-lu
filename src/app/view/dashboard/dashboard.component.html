@@ -1,55 +1,5 @@
 <div class="min-h-screen bg-ink">
-  <header class="flex flex-wrap items-center justify-between gap-y-2 px-4 sm:px-6 py-4 border-b border-paper/10">
-    <div class="flex items-center gap-3">
-      <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-        <circle cx="10" cy="9.5" r="3.2" fill="#E2883A" />
-        <line x1="12" y1="21" x2="20" y2="11" stroke="#E2883A" stroke-width="2.75" stroke-linecap="round" opacity="0.85" />
-        <circle cx="22" cy="22.5" r="3.2" fill="#E2883A" opacity="0.55" />
-      </svg>
-      <div>
-        <h1 class="font-display font-semibold text-sm tracking-wide text-paper">EU WORKME</h1>
-        <p class="text-xs text-paper/40">{{ authenticationService.user?.email }}</p>
-      </div>
-    </div>
-    <div class="flex flex-wrap items-center gap-2">
-      <a
-        routerLink="/matches/other"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Other matches
-      </a>
-      <a
-        routerLink="/applications"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Applications
-      </a>
-      <a
-        routerLink="/companies"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Companies
-      </a>
-      <a
-        routerLink="/profiles"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Profiles
-      </a>
-      <a
-        routerLink="/admin"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
-      >
-        Admin
-      </a>
-      <button
-        class="px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors"
-        (click)="authenticationService.signOut()"
-      >
-        Sign out
-      </button>
-    </div>
-  </header>
+  <app-header></app-header>
 
   <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 sm:px-6 py-3 border-b border-paper/10">
     <div class="flex items-center gap-1">

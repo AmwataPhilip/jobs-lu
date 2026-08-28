@@ -12,13 +12,14 @@ import { JobApplication, ApplicationStatus } from '../../models/application.mode
 import { jobDetailUrl } from '../../consts/routes.consts';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
 import { annualizeSalary, formatAnnualSalary } from '../../utils/salary.util';
+import { AppHeaderComponent } from '../../components/app-header/app-header.component';
 
 export type ProfileSectionTab = 'overview' | 'bullets' | 'matches' | 'applications';
 
 @Component({
   selector: 'app-profiles',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AppHeaderComponent],
   templateUrl: './profiles.component.html',
 })
 export class ProfilesComponent implements OnInit {

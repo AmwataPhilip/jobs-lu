@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { VacanciesService } from '../../services/vacancies.service';
 import { ApplicationsService } from '../../services/applications.service';
-import { AuthenticationService } from '../../services/authentication.service';
 import { PersonasService } from '../../services/personas.service';
 import { Vacancy } from '../../models/vacancy.model';
 import { JobApplication, ApplicationStatus } from '../../models/application.model';
@@ -13,6 +12,7 @@ import { PersonaId } from '../../models/persona.model';
 import { jobDetailUrl } from '../../consts/routes.consts';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
 import { annualizeSalary } from '../../utils/salary.util';
+import { AppHeaderComponent } from '../../components/app-header/app-header.component';
 
 export type CompanySortKey = 'vacancies' | 'score' | 'applications' | 'salary' | 'name';
 export type CompanyPersonaFilter = 'all' | 'philip' | 'chiara';
@@ -47,11 +47,10 @@ export interface CompanyOverview {
 @Component({
   selector: 'app-companies',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AppHeaderComponent],
   templateUrl: './companies.component.html',
 })
 export class CompaniesComponent implements OnInit {
-  authenticationService = inject(AuthenticationService);
   private vacanciesService = inject(VacanciesService);
   private applicationsService = inject(ApplicationsService);
   private personasService = inject(PersonasService);
