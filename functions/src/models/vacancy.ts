@@ -5,7 +5,10 @@ export type VacancySource =
   | 'Moovijob'
   | 'JobsLu'
   | 'SiliconLuxembourg'
-  | 'UniLu';
+  | 'UniLu'
+  | 'Jobfinder'
+  | 'Hays'
+  | 'Adecco';
 
 export type VacancyStatus =
   | 'new'

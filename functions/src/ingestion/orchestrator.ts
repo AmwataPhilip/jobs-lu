@@ -2,6 +2,9 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { fetchEuresJobs } from './fetchEuresJobs';
 import { fetchSiliconLuxembourgJobs } from './fetchSiliconLuxembourgJobs';
+import { fetchJobfinderJobs } from './fetchJobfinderJobs';
+import { fetchHaysJobs } from './fetchHaysJobs';
+import { fetchAdeccoJobs } from './fetchAdeccoJobs';
 import { APIFY_SOURCES, fetchApifySource } from './fetchApifySource';
 import { extractEscoAndEmbed } from '../matching/extractEscoAndEmbed';
 import { scoreMatch } from '../matching/scoreMatch';
@@ -34,6 +37,9 @@ const DIRECT_FETCH_SOURCES: {
 }[] = [
   { sourceName: 'EURES', fetch: fetchEuresJobs },
   { sourceName: 'SiliconLuxembourg', fetch: fetchSiliconLuxembourgJobs },
+  { sourceName: 'Jobfinder', fetch: fetchJobfinderJobs },
+  { sourceName: 'Hays', fetch: fetchHaysJobs },
+  { sourceName: 'Adecco', fetch: fetchAdeccoJobs },
 ];
 
 export async function runIngestion(
