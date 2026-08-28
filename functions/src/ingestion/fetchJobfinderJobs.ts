@@ -91,8 +91,14 @@ async function fetchDetail(id: string): Promise<JobfinderDetailData | null> {
   const response = await fetch(`${DETAIL_URL_BASE}/${id}`, {
     headers: { 'User-Agent': USER_AGENT },
   });
-  if (!response.ok) {
+  if (response.status === 404 || response.status === 410) {
+    // Expected, not a bug — see the identical comment in
+    // fetchAdeccoJobs.ts. A listing found in search results can expire
+    // before this detail fetch runs.
     return null;
+  }
+  if (!response.ok) {
+    throw new Error(`Jobfinder detail fetch failed for ${id}: HTTP ${response.status}`);
   }
   const html = await response.text();
   return extractNextDataQuery<JobfinderDetailData>(html, 0);
@@ -142,7 +148,7 @@ export async function fetchJobfinderJobs(runId: string): Promise<{
         try {
           const detail = await fetchDetail(id);
           if (!detail) {
-            errors.push(`detail fetch returned nothing for ${id}`);
+            // 404/410 — expired between search and this fetch, not an error.
             return;
           }
           const jobId = `jobfinder_${id}`;

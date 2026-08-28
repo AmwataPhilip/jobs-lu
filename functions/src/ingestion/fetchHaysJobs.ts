@@ -81,6 +81,12 @@ export async function fetchHaysJobs(runId: string): Promise<{
     try {
       await sleep(CRAWL_DELAY_MS);
       const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+      if (response.status === 404 || response.status === 410) {
+        // Expected, not a bug — see the identical comment in
+        // fetchAdeccoJobs.ts. A listing can expire between being linked from
+        // the search page and this detail fetch.
+        continue;
+      }
       if (!response.ok) {
         errors.push(`${url}: HTTP ${response.status}`);
         continue;

@@ -69,6 +69,13 @@ export async function fetchAdeccoJobs(runId: string): Promise<{
       chunk.map(async (url) => {
         try {
           const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+          if (response.status === 404 || response.status === 410) {
+            // Expected, not a bug: the sitemap can legitimately list a job
+            // that's since expired/been pulled between when the sitemap was
+            // generated and when this fetch ran. Skip quietly rather than
+            // reporting it as an ingestion error.
+            return;
+          }
           if (!response.ok) {
             errors.push(`${url}: HTTP ${response.status}`);
             return;

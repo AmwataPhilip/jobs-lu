@@ -133,7 +133,24 @@ export async function runIngestion(
   const stalledJobIds = stalledSnap.docs
     .map((doc) => doc.id)
     .filter((jobId) => !newJobIds.includes(jobId));
-  const jobIdsToMatch = [...newJobIds, ...stalledJobIds];
+
+  // The stalled-sweep bound above only ever capped its own contribution —
+  // with 10 DIRECT_FETCH_SOURCES now, each with its own per-source cap
+  // (fetchAmazonJobs.ts alone allows up to 40), newJobIds by itself can
+  // exceed 150+ on a day where several sources all find a full batch of new
+  // postings at once. Each entry here costs a real Gemini API call
+  // (extractEscoAndEmbed), so an uncapped total is exactly the kind of
+  // unbounded-per-run cost the stalled-sweep comment above already warned
+  // about — it just wasn't the only source of it. Bound the combined total,
+  // prioritizing this run's own fresh discoveries (newJobIds) over stalled
+  // retries, since a stalled job simply waits one more day rather than never
+  // being matched at all.
+  const MAX_TOTAL_MATCHES_PER_RUN = 120;
+  const jobIdsToMatch = [...newJobIds, ...stalledJobIds].slice(0, MAX_TOTAL_MATCHES_PER_RUN);
+  // How many of jobIdsToMatch actually came from the stalled sweep, after
+  // the shared cap above — stalledJobIds.length on its own would over-report
+  // if newJobIds alone already used up (or exceeded) the total budget.
+  const stalledRetriedCount = jobIdsToMatch.length - Math.min(newJobIds.length, jobIdsToMatch.length);
 
   const MATCHING_CONCURRENCY = 5;
   for (let i = 0; i < jobIdsToMatch.length; i += MATCHING_CONCURRENCY) {
@@ -162,7 +179,7 @@ export async function runIngestion(
     sourcesSkipped,
     jobsFetched,
     jobsNew,
-    jobsRetried: stalledJobIds.length,
+    jobsRetried: stalledRetriedCount,
     jobsMatched,
     errors,
     status,
@@ -173,7 +190,7 @@ export async function runIngestion(
     status,
     jobsFetched,
     jobsNew,
-    jobsRetried: stalledJobIds.length,
+    jobsRetried: stalledRetriedCount,
     jobsMatched,
     errorCount: errors.length,
     skippedCount: sourcesSkipped.length,
@@ -184,7 +201,7 @@ export async function runIngestion(
     status,
     jobsFetched,
     jobsNew,
-    jobsRetried: stalledJobIds.length,
+    jobsRetried: stalledRetriedCount,
     jobsMatched,
     sourcesSkipped,
     errors,

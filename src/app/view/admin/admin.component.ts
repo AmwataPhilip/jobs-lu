@@ -641,10 +641,10 @@ export class AdminComponent {
     this.ingestionError = null;
     this.ingestionResult = null;
     try {
-      // Matches adminRunIngestion's backend timeoutSeconds (540s) — the SDK's
+      // Matches adminRunIngestion's backend timeoutSeconds (900s) — the SDK's
       // default 70s client deadline was firing before the pipeline finished.
       const callable = httpsCallable<unknown, IngestionResult>(this.functions, 'adminRunIngestion', {
-        timeout: 540000,
+        timeout: 900000,
       });
       const response = await callable();
       this.ingestionResult = response.data;
