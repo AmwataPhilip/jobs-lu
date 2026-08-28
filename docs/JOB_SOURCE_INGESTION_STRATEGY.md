@@ -13,6 +13,26 @@ and Adecco Luxembourg are implemented and wired into `orchestrator.ts`'s
 happened; it's kept here, corrected, rather than deleted, so the dead end isn't
 silently re-investigated later.
 
+**Status: major-employer sources built and live (2026-08-28, second pass).**
+A follow-up request asked for eight specific Luxembourg employers plus an
+investigation into using Moovijob's companies directory
+(`en.moovijob.com/companies`) to discover more. Findings and outcome — see the
+"Major employer career pages" section below for full detail per source:
+
+- **Built and live**: Amazon Luxembourg, Cargolux, ArcelorMittal, BGL BNP
+  Paribas, CACEIS Luxembourg — all direct-fetch, zero bot protection, same
+  `DIRECT_FETCH_SOURCES` pattern as Tier 1.
+- **Needs headless-browser/Apify treatment** (added to the existing Camoufox
+  backlog, not built yet): Spuerkeess (BCEE), Luxair — both Cornerstone
+  OnDemand, same ATS, likely shareable with one connector once built; SES
+  Space & Defence — SAP SuccessFactors, AJAX-rendered.
+- **Moovijob companies directory: dead end.** `en.moovijob.com/companies`
+  returns HTTP 403 with a Cloudflare managed-challenge page — the exact same
+  bot wall as Moovijob's job listings, not a separate, more-accessible page.
+  It cannot be used to discover companies' own external career-site URLs;
+  that would need a different discovery mechanism entirely (a headless
+  browser capable of clearing the challenge, or a manually-curated list).
+
 ## How to read this document
 
 Every source is scored against the same three questions, because they determine
@@ -48,9 +68,20 @@ which of the two integration patterns already in this codebase it fits:
 | 10 | **Faruse** | Expat board | ❌ Skip | N/A — re-aggregator, no extractable data | Small, non-LU-specific | N/A |
 | 11 | **Work in Luxembourg** | Official | ❌ Skip (superseded) | N/A — same underlying pool as #2 | N/A | N/A |
 | 12 | **LinkedIn** | Global network | ❌ Do not build | N/A — ToS + case law risk, no self-serve API | N/A | High |
+| 13 | **Amazon Luxembourg** | Major employer | ✅ Built and live | Direct fetch, public `amazon.jobs` JSON API | 85 listings | None |
+| 14 | **Cargolux** | Major employer | ✅ Built and live | Direct fetch, Oracle Recruiting Cloud REST API | 59 total, 34 LU | None |
+| 15 | **ArcelorMittal** | Major employer | ✅ Built and live | Direct fetch, same Oracle API, different tenant | 805 total, 36 LU-filtered | None |
+| 16 | **BGL BNP Paribas** | Major employer | ✅ Built and live | Direct fetch, WordPress RSS feed | ~10 listings | None |
+| 17 | **CACEIS Luxembourg** | Major employer | ✅ Built and live | Direct fetch, Talentsoft RSS feed (LU-filtered) | 20 listings | None |
+| 18 | **Spuerkeess (BCEE)** | Major employer | 🟡 Needs Apify | Cornerstone OnDemand SPA, auth-gated API | Unknown | None (once built) |
+| 19 | **Luxair** | Major employer | 🟡 Needs Apify | Same Cornerstone OnDemand platform as #18 | ~50 (est.) | None (once built) |
+| 20 | **SES Space & Defence** | Major employer | 🟡 Needs Apify | SAP SuccessFactors, AJAX-rendered | Unknown | None (once built) |
+| 21 | **Moovijob companies directory** | Discovery mechanism | ❌ Dead end | N/A — same Cloudflare wall as Moovijob job listings | N/A | N/A |
 
 `5. EURAXESS`, `8. EURES` are already covered elsewhere (EURES is live; EURAXESS
-follows the same shape). The rest of this document explains each verdict.
+follows the same shape). Rows 13-21 are from a second research pass — see
+"Major employer career pages" below for full detail. The rest of this
+document explains each verdict.
 
 ---
 
@@ -353,6 +384,98 @@ function, upload it, let Gemini extract structured fields the same way it alread
 extracts CV bullets. That's a deliberate one-off human action per job, not
 automated ingestion, and is out of scope for this document — noted here only so
 it isn't independently re-proposed as a workaround to the ToS risk above.
+
+---
+
+## Major employer career pages (second pass, 2026-08-28)
+
+Requested as a follow-up: eight specific Luxembourg employers, plus an
+investigation into whether Moovijob's companies directory could be used to
+discover more companies' own career-page URLs. All verified live the same
+day, using the same fetch-first-don't-guess approach as the rest of this
+document.
+
+### Built and live
+
+**Amazon Luxembourg** (`functions/src/ingestion/fetchAmazonJobs.ts`) — the
+best source found in either research pass. `amazon.jobs` exposes a public,
+undocumented, unauthenticated JSON API
+(`amazon.jobs/en/search.json?normalized_country_code[]=LUX`) that returns
+full job descriptions and qualifications inline — no per-job detail fetch
+needed at all, unlike every other source in this document. 85 Luxembourg
+listings confirmed live; 40 ingested on the first run (capped by
+`MAX_NEW_JOBS_PER_RUN`).
+
+**Cargolux and ArcelorMittal** (`functions/src/lib/oracleRecruitingCloud.ts`,
+`fetchCargoluxJobs.ts`, `fetchArcelorMittalJobs.ts`) — both run on Oracle
+Recruiting Cloud (Fusion HCM), an identical unauthenticated REST API pattern
+across both, differing only in host and `siteNumber` tenant. One shared
+connector serves both, and should work for any other Oracle Recruiting Cloud
+employer found later. **Important gotcha**: the API requires
+`expand=requisitionList` in the query string — without it, the endpoint
+returns HTTP 200 with real search metadata/facets but an empty requisition
+array, which looks exactly like "zero jobs found" rather than an error. Easy
+to miss, confirmed by hitting it firsthand. ArcelorMittal's pool is global
+(805 postings) so a server-side `keyword=Luxembourg` filter narrows it before
+the client-side `PrimaryLocationCountry === 'LU'` check (keyword-matching
+isn't the same as being located there). 34 and 36 listings live respectively
+on the first run.
+
+**BGL BNP Paribas** (`functions/src/ingestion/fetchBnpParibasJobs.ts`) —
+standard WordPress "Jobs Archive" RSS feed (`bnpparibas.lu/en/jobs/feed/`),
+no bot protection. Small volume (~10 items, WordPress's default RSS item
+count) but zero risk. Uses a new shared `functions/src/lib/rssFeed.ts` helper
+(regex-based `<item>` extraction, not a full XML parser — deliberate, matches
+this codebase's existing regex-based extraction style for other
+small/simple document shapes).
+
+**CACEIS Luxembourg** (`functions/src/ingestion/fetchCaceisJobs.ts`) — the
+Talentsoft-hosted career site publishes a country-filterable RSS feed
+(`jobs.caceis.com/handlers/offerRss.ashx?Rss_JobCountry=119`, `119` =
+Luxembourg) — found by fetching the site's own "all RSS feeds" index page
+rather than guessing a URL. No `<pubDate>` in this particular feed (unlike
+BNP Paribas's), so `postedAt` stays null for these listings. Reuses the same
+`rssFeed.ts` helper. 20 listings live on the first run.
+
+All five follow the existing `employer: <agency/company name>` convention
+used by Hays/Adecco — for these five it's the actual hiring company itself
+(not a staffing intermediary), so this is more informative than it was there.
+
+### Needs headless-browser treatment (added to the existing Camoufox backlog)
+
+**Spuerkeess (BCEE)** and **Luxair** both run **Cornerstone OnDemand (CSOD)**
+— confirmed via `csod.player.initialize`/`csod.context` JS objects on both
+sites. Pure JS SPA shell (`<div id="cs-root">`, zero server-rendered job
+data); Cornerstone's internal REST endpoints exist
+(`services/x/job-requisition/v2/requisitions`) but are gated behind a
+short-lived session JWT, not casually scrapable without a headless browser
+to mint that token first. Since both employers share the exact same
+platform, one Cornerstone-OnDemand Apify actor template should cover both
+rather than needing two separate builds — worth keeping in mind whenever the
+Camoufox/Apify work in `docs/APIFY_OPTIMIZATION_PLAN.md` gets picked up.
+
+**SES Space & Defence** runs **SAP SuccessFactors Recruiting Marketing**
+(jobs2web/SmashFly heritage) — confirmed via `hcm41.sapsf.com`/
+`jobs2web.com` signatures. No Cloudflare/CAPTCHA, but listings load via
+internal AJAX calls not discoverable from a plain HTML fetch — needs either
+a headless browser or the specific SuccessFactors AJAX search endpoint
+(not found without a JS-capable trace).
+
+### Moovijob companies directory — dead end
+
+`https://en.moovijob.com/companies` was investigated specifically to see
+whether it's protected the same way as Moovijob's job listings (already
+known to be Cloudflare-blocked, see the existing Moovijob section above) or
+whether — being a different kind of page — it might be more accessible.
+**It's the same wall**: the request returns HTTP 403 with
+`cf-mitigated: challenge` and a full JS managed-challenge page
+(`robots.txt` on the same domain is equally challenge-gated, meaning the
+entire domain sits behind Cloudflare bot management, not just specific
+paths). No company names, external website links, or any real content came
+back — only the Cloudflare challenge shell. This rules out "scrape
+Moovijob's directory to discover companies' own career-page URLs" as an
+approach entirely; it was never actually a way around Moovijob's bot
+protection, just another page behind the same one.
 
 ---
 

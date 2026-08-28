@@ -8,7 +8,12 @@ export type VacancySource =
   | 'UniLu'
   | 'Jobfinder'
   | 'Hays'
-  | 'Adecco';
+  | 'Adecco'
+  | 'Amazon'
+  | 'Cargolux'
+  | 'ArcelorMittal'
+  | 'BnpParibas'
+  | 'Caceis';
 
 export type VacancyStatus =
   | 'new'

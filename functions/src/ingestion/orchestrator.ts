@@ -5,6 +5,11 @@ import { fetchSiliconLuxembourgJobs } from './fetchSiliconLuxembourgJobs';
 import { fetchJobfinderJobs } from './fetchJobfinderJobs';
 import { fetchHaysJobs } from './fetchHaysJobs';
 import { fetchAdeccoJobs } from './fetchAdeccoJobs';
+import { fetchAmazonJobs } from './fetchAmazonJobs';
+import { fetchCargoluxJobs } from './fetchCargoluxJobs';
+import { fetchArcelorMittalJobs } from './fetchArcelorMittalJobs';
+import { fetchBnpParibasJobs } from './fetchBnpParibasJobs';
+import { fetchCaceisJobs } from './fetchCaceisJobs';
 import { APIFY_SOURCES, fetchApifySource } from './fetchApifySource';
 import { extractEscoAndEmbed } from '../matching/extractEscoAndEmbed';
 import { scoreMatch } from '../matching/scoreMatch';
@@ -40,6 +45,11 @@ const DIRECT_FETCH_SOURCES: {
   { sourceName: 'Jobfinder', fetch: fetchJobfinderJobs },
   { sourceName: 'Hays', fetch: fetchHaysJobs },
   { sourceName: 'Adecco', fetch: fetchAdeccoJobs },
+  { sourceName: 'Amazon', fetch: fetchAmazonJobs },
+  { sourceName: 'Cargolux', fetch: fetchCargoluxJobs },
+  { sourceName: 'ArcelorMittal', fetch: fetchArcelorMittalJobs },
+  { sourceName: 'BnpParibas', fetch: fetchBnpParibasJobs },
+  { sourceName: 'Caceis', fetch: fetchCaceisJobs },
 ];
 
 export async function runIngestion(
