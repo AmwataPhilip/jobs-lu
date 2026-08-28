@@ -8,7 +8,7 @@ import { Storage, ref, uploadBytes } from '@angular/fire/storage';
 import { PersonasService } from '../../services/personas.service';
 import { VacanciesService } from '../../services/vacancies.service';
 import { ApplicationsService } from '../../services/applications.service';
-import { CvBullet, PersonaId } from '../../models/persona.model';
+import { CvBullet, Persona, PersonaId } from '../../models/persona.model';
 import { Vacancy } from '../../models/vacancy.model';
 import { JobApplication } from '../../models/application.model';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
@@ -133,6 +133,9 @@ export class AdminComponent {
 
   personas$ = this.personasService.getPersonas();
   domainsDraft: Record<PersonaId, string> = { philip: '', chiara: '' };
+  coreSkillsDraft: Record<PersonaId, string> = { philip: '', chiara: '' };
+  targetRolesDraft: Record<PersonaId, string> = { philip: '', chiara: '' };
+  targetInstitutionsDraft: Record<PersonaId, string> = { philip: '', chiara: '' };
   draftInitialized: Record<PersonaId, boolean> = { philip: false, chiara: false };
 
   // Real-time data streams
@@ -509,9 +512,13 @@ export class AdminComponent {
   uploadingCv: Record<PersonaId, boolean> = { philip: false, chiara: false };
   cvUploadError: Record<string, string | null> = {};
 
-  initDraft(personaId: PersonaId, domains: string[]) {
+  initDraft(persona: Persona) {
+    const personaId = persona.personaId;
     if (!this.draftInitialized[personaId]) {
-      this.domainsDraft[personaId] = domains.join(', ');
+      this.domainsDraft[personaId] = persona.domains.join(', ');
+      this.coreSkillsDraft[personaId] = persona.coreSkills.join(', ');
+      this.targetRolesDraft[personaId] = persona.targetRoles.join(', ');
+      this.targetInstitutionsDraft[personaId] = persona.targetInstitutions.join(', ');
       this.draftInitialized[personaId] = true;
     }
   }
@@ -686,16 +693,23 @@ export class AdminComponent {
     }
   }
 
-  async savePersonaDomains(personaId: PersonaId) {
+  private splitCommaList(value: string): string[] {
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+
+  async savePersonaTargeting(personaId: PersonaId) {
     this.savingPersona = personaId;
     this.personaSaveError[personaId] = null;
     try {
-      const domains = this.domainsDraft[personaId]
-        .split(',')
-        .map((d) => d.trim())
-        .filter(Boolean);
-      const callable = httpsCallable(this.functions, 'adminUpdatePersonaDomains');
-      await callable({ personaId, domains });
+      const domains = this.splitCommaList(this.domainsDraft[personaId]);
+      const coreSkills = this.splitCommaList(this.coreSkillsDraft[personaId]);
+      const targetRoles = this.splitCommaList(this.targetRolesDraft[personaId]);
+      const targetInstitutions = this.splitCommaList(this.targetInstitutionsDraft[personaId]);
+      const callable = httpsCallable(this.functions, 'adminUpdatePersonaTargeting');
+      await callable({ personaId, domains, coreSkills, targetRoles, targetInstitutions });
     } catch (error) {
       this.personaSaveError[personaId] = error instanceof Error ? error.message : String(error);
     } finally {

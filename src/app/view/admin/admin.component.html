@@ -753,33 +753,66 @@
 
   <!-- Personas -->
   <section class="mt-10 pt-6 border-t border-paper/10">
-    <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Personas & Matching Domains</h2>
+    <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-1">Personas & Matching Profile</h2>
     <p class="text-sm text-paper/40 mb-4">
-      Editing target domains updates candidate profile embeddings and recalibrates automated matching.
+      Editing domains, core skills, or target roles updates candidate profile embeddings and recalibrates
+      automated matching. Target institutions are display-only for now (not yet used by matching or ingestion).
     </p>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div *ngFor="let persona of (personas$ | async)" class="p-4 rounded bg-paper/[0.03] border border-paper/10">
-        <ng-container *ngIf="initDraft(persona.personaId, persona.domains)"></ng-container>
-        <div class="flex items-center justify-between mb-2">
+        <ng-container *ngIf="initDraft(persona)"></ng-container>
+        <div class="flex items-center justify-between mb-3">
           <label class="text-sm font-medium text-paper">{{ persona.displayName }}</label>
           <span class="text-[10px] font-mono text-paper/40 uppercase">{{ persona.personaId }}</span>
         </div>
-        <div class="flex gap-2">
-          <input
-            type="text"
-            class="flex-1 px-3 py-2 text-sm bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
-            [(ngModel)]="domainsDraft[persona.personaId]"
-            placeholder="Comma-separated domains"
-          />
-          <button
-            class="px-4 py-2 text-sm font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 disabled:opacity-40 transition-colors"
-            [disabled]="savingPersona === persona.personaId"
-            (click)="savePersonaDomains(persona.personaId)"
-          >
-            {{ savingPersona === persona.personaId ? 'Saving…' : 'Save' }}
-          </button>
+
+        <div class="space-y-2.5">
+          <div>
+            <label class="text-[11px] text-paper/40">Domains</label>
+            <input
+              type="text"
+              class="mt-1 w-full px-3 py-2 text-sm bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
+              [(ngModel)]="domainsDraft[persona.personaId]"
+              placeholder="Comma-separated domains"
+            />
+          </div>
+          <div>
+            <label class="text-[11px] text-paper/40">Core skills</label>
+            <input
+              type="text"
+              class="mt-1 w-full px-3 py-2 text-sm bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
+              [(ngModel)]="coreSkillsDraft[persona.personaId]"
+              placeholder="Comma-separated core skills"
+            />
+          </div>
+          <div>
+            <label class="text-[11px] text-paper/40">Target roles</label>
+            <input
+              type="text"
+              class="mt-1 w-full px-3 py-2 text-sm bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
+              [(ngModel)]="targetRolesDraft[persona.personaId]"
+              placeholder="Comma-separated target roles"
+            />
+          </div>
+          <div>
+            <label class="text-[11px] text-paper/40">Target institutions</label>
+            <input
+              type="text"
+              class="mt-1 w-full px-3 py-2 text-sm bg-paper/[0.06] text-paper rounded border border-paper/10 focus:outline-none focus:border-gold/50"
+              [(ngModel)]="targetInstitutionsDraft[persona.personaId]"
+              placeholder="Comma-separated target institutions"
+            />
+          </div>
         </div>
+
+        <button
+          class="mt-3 px-4 py-2 text-sm font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 disabled:opacity-40 transition-colors"
+          [disabled]="savingPersona === persona.personaId"
+          (click)="savePersonaTargeting(persona.personaId)"
+        >
+          {{ savingPersona === persona.personaId ? 'Saving…' : 'Save' }}
+        </button>
         <p *ngIf="personaSaveError[persona.personaId]" class="mt-1.5 text-xs text-signal-red">
           {{ personaSaveError[persona.personaId] }}
         </p>

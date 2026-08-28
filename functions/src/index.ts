@@ -17,7 +17,7 @@ export { generateTailoredCv } from './documents/generateTailoredCvCallable';
 // Admin panel callables (src/app/view/admin/) — all allowlist-gated.
 export { adminSeedReferenceData } from './admin/seedCallable';
 export { adminRunIngestion } from './admin/runIngestionCallable';
-export { adminUpdatePersonaDomains } from './admin/updatePersonaCallable';
+export { adminUpdatePersonaTargeting } from './admin/updatePersonaCallable';
 export { adminUpdatePersonaCvBullets } from './admin/updatePersonaCvBulletsCallable';
 export { adminParseCvPdf } from './admin/parseCvPdfCallable';
 export { adminRematchAll, adminRematchJob } from './admin/rematchCallable';
