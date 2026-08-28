@@ -1,0 +1,546 @@
+<div class="min-h-screen bg-ink flex flex-col text-paper">
+  <!-- Top Navigation Header -->
+  <header class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-paper/10 bg-ink shrink-0">
+    <div class="flex items-center gap-3">
+      <a routerLink="/dashboard" class="flex items-center gap-2 text-paper hover:opacity-80 transition-opacity">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+          <circle cx="10" cy="9.5" r="3.2" fill="#E2883A" />
+          <line x1="12" y1="21" x2="20" y2="11" stroke="#E2883A" stroke-width="2.75" stroke-linecap="round" opacity="0.85" />
+          <circle cx="22" cy="22.5" r="3.2" fill="#E2883A" opacity="0.55" />
+        </svg>
+        <div>
+          <h1 class="font-display font-semibold text-sm tracking-wide text-paper">EU WORKME</h1>
+          <p class="text-xs text-paper/40 hidden sm:block">{{ authenticationService.user?.email }}</p>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-1 sm:gap-2 text-xs overflow-x-auto">
+      <a
+        routerLink="/dashboard"
+        class="px-2.5 sm:px-3 py-1.5 font-medium text-paper/60 hover:text-paper transition-colors whitespace-nowrap"
+      >
+        Dashboard
+      </a>
+      <a
+        routerLink="/matches/other"
+        class="px-2.5 sm:px-3 py-1.5 font-medium text-paper/60 hover:text-paper transition-colors hidden md:block whitespace-nowrap"
+      >
+        Other matches
+      </a>
+      <a
+        routerLink="/applications"
+        class="px-2.5 sm:px-3 py-1.5 font-medium text-paper/60 hover:text-paper transition-colors whitespace-nowrap"
+      >
+        Applications
+      </a>
+      <a
+        routerLink="/companies"
+        class="px-2.5 sm:px-3 py-1.5 font-medium text-paper/60 hover:text-paper transition-colors whitespace-nowrap"
+      >
+        Companies
+      </a>
+      <a
+        routerLink="/profiles"
+        class="px-2.5 sm:px-3 py-1.5 font-medium text-ink bg-gold rounded transition-colors whitespace-nowrap"
+      >
+        Profiles
+      </a>
+      <a
+        routerLink="/admin"
+        class="px-2.5 sm:px-3 py-1.5 font-medium text-paper/60 hover:text-paper transition-colors hidden sm:block whitespace-nowrap"
+      >
+        Admin
+      </a>
+      <button
+        class="px-2.5 sm:px-3 py-1.5 font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors whitespace-nowrap"
+        (click)="authenticationService.signOut()"
+      >
+        Sign out
+      </button>
+    </div>
+  </header>
+
+  <!-- Candidate Profile Switcher Bar -->
+  <div class="border-b border-paper/10 bg-paper/[0.02] px-4 sm:px-6 py-3 shrink-0">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <!-- Persona Tabs -->
+      <div class="flex items-center gap-2 p-1 rounded-lg bg-paper/[0.05] border border-paper/10 self-start sm:self-auto w-full sm:w-auto">
+        <button
+          (click)="setPersona('philip')"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-xs font-medium transition-all"
+          [ngClass]="activePersonaId() === 'philip' ? 'bg-gold text-ink shadow-sm' : 'text-paper/60 hover:text-paper'"
+        >
+          <span class="w-2 h-2 rounded-full" [ngClass]="activePersonaId() === 'philip' ? 'bg-ink' : 'bg-gold'"></span>
+          <span>Philip Amwata</span>
+          <span class="text-[10px] px-1.5 py-0.2 rounded font-mono" [ngClass]="activePersonaId() === 'philip' ? 'bg-ink/15 text-ink' : 'bg-paper/10 text-paper/60'">
+            Tech & AI
+          </span>
+        </button>
+
+        <button
+          (click)="setPersona('chiara')"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-xs font-medium transition-all"
+          [ngClass]="activePersonaId() === 'chiara' ? 'bg-gold text-ink shadow-sm' : 'text-paper/60 hover:text-paper'"
+        >
+          <span class="w-2 h-2 rounded-full" [ngClass]="activePersonaId() === 'chiara' ? 'bg-ink' : 'bg-gold'"></span>
+          <span>Chiara Witry</span>
+          <span class="text-[10px] px-1.5 py-0.2 rounded font-mono" [ngClass]="activePersonaId() === 'chiara' ? 'bg-ink/15 text-ink' : 'bg-paper/10 text-paper/60'">
+            ESG & Talent
+          </span>
+        </button>
+      </div>
+
+      <!-- Quick Context Indicator -->
+      <div class="text-xs text-paper/40 flex items-center gap-2">
+        <span class="hidden sm:inline">Active Candidate Profile:</span>
+        <span class="font-mono text-gold font-medium">{{ activePersona()?.displayName || 'Loading…' }}</span>
+        <span>·</span>
+        <a routerLink="/admin" class="text-paper/60 hover:text-gold transition-colors text-xs inline-flex items-center gap-1">
+          ⚙️ Edit CV in Admin
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Profile Content Area -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 md:py-8 space-y-6">
+    <!-- Candidate Hero Card -->
+    <div class="p-5 sm:p-7 rounded-xl bg-paper/[0.03] border border-paper/10 relative overflow-hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div class="flex items-start gap-4 sm:gap-5">
+          <!-- Monogram Avatar -->
+          <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-gold/20 to-paper/5 border border-gold/40 flex items-center justify-center shrink-0 shadow-inner">
+            <span class="font-display font-semibold text-lg sm:text-xl text-gold">
+              {{ activePersonaId() === 'philip' ? 'PA' : 'CW' }}
+            </span>
+          </div>
+
+          <!-- Name & Details -->
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="font-display font-semibold text-xl sm:text-2xl text-paper tracking-tight">
+                {{ activePersona()?.displayName }}
+              </h2>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-gold/15 text-gold border border-gold/20">
+                Active Job Search
+              </span>
+            </div>
+
+            <p class="text-xs sm:text-sm text-paper/60 font-mono flex items-center gap-2 flex-wrap">
+              <span>✉️ {{ activePersona()?.contactEmail }}</span>
+              <span>·</span>
+              <span>📍 Luxembourg & Greater Region</span>
+            </p>
+
+            <!-- Domain Pills -->
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              <span
+                *ngFor="let domain of activePersona()?.domains || []"
+                class="px-2.5 py-0.5 rounded bg-paper/[0.06] text-xs text-paper/80 font-medium border border-paper/10"
+              >
+                {{ domain }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Salary Baseline Target Card -->
+        <div class="p-3.5 sm:p-4 rounded-lg bg-paper/[0.04] border border-paper/10 self-start md:self-auto min-w-[200px] w-full md:w-auto">
+          <span class="text-[10px] uppercase font-mono text-paper/40 tracking-wider block">Target Gross Baseline</span>
+          <div class="text-xl sm:text-2xl font-mono font-semibold text-gold num mt-0.5">
+            €{{ (activePersona()?.salaryBaseline || 0) | number }}/yr
+          </div>
+          <span class="text-[11px] text-paper/50 mt-0.5 block">
+            Annual minimum target (Luxembourg market)
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Ribbon -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 border-t border-paper/10">
+        <div class="p-3 rounded bg-paper/[0.02] border border-paper/5">
+          <span class="text-[10px] uppercase text-paper/40 font-mono block">Top-Tier Roles</span>
+          <span class="text-lg sm:text-xl font-mono font-semibold text-gold num mt-0.5 block">
+            {{ activeStats().topTierCount }}
+          </span>
+          <span class="text-[11px] text-paper/40">Matches ≥70% score</span>
+        </div>
+
+        <div class="p-3 rounded bg-paper/[0.02] border border-paper/5">
+          <span class="text-[10px] uppercase text-paper/40 font-mono block">Avg Match Score</span>
+          <span class="text-lg sm:text-xl font-mono font-semibold text-paper num mt-0.5 block">
+            {{ activeStats().avgScore }}%
+          </span>
+          <span class="text-[11px] text-paper/40">Semantic fit index</span>
+        </div>
+
+        <div class="p-3 rounded bg-paper/[0.02] border border-paper/5">
+          <span class="text-[10px] uppercase text-paper/40 font-mono block">Applications</span>
+          <span class="text-lg sm:text-xl font-mono font-semibold text-paper num mt-0.5 block">
+            {{ activeStats().applicationsCount }}
+          </span>
+          <span class="text-[11px] text-paper/40">{{ activeStats().submittedAppsCount }} active in pipeline</span>
+        </div>
+
+        <div class="p-3 rounded bg-paper/[0.02] border border-paper/5">
+          <span class="text-[10px] uppercase text-paper/40 font-mono block">CV Bullets</span>
+          <span class="text-lg sm:text-xl font-mono font-semibold text-paper num mt-0.5 block">
+            {{ activeStats().bulletsCount }}
+          </span>
+          <span class="text-[11px] text-paper/40">Curated & categorized</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section Navigation Tabs -->
+    <div class="flex items-center gap-1.5 border-b border-paper/10 overflow-x-auto pb-2">
+      <button
+        (click)="setTab('overview')"
+        class="px-3.5 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap flex items-center gap-1.5"
+        [ngClass]="activeTab() === 'overview' ? 'bg-gold text-ink font-semibold' : 'text-paper/60 hover:text-paper bg-paper/[0.02]'"
+      >
+        <span>🎯 Career Strategy & Targeting</span>
+      </button>
+
+      <button
+        (click)="setTab('bullets')"
+        class="px-3.5 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap flex items-center gap-1.5"
+        [ngClass]="activeTab() === 'bullets' ? 'bg-gold text-ink font-semibold' : 'text-paper/60 hover:text-paper bg-paper/[0.02]'"
+      >
+        <span>📄 CV Bullet Library</span>
+        <span class="num text-[11px] px-1.5 py-0.2 rounded" [ngClass]="activeTab() === 'bullets' ? 'bg-ink/20 text-ink' : 'bg-paper/10 text-paper/70'">
+          {{ activeStats().bulletsCount }}
+        </span>
+      </button>
+
+      <button
+        (click)="setTab('matches')"
+        class="px-3.5 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap flex items-center gap-1.5"
+        [ngClass]="activeTab() === 'matches' ? 'bg-gold text-ink font-semibold' : 'text-paper/60 hover:text-paper bg-paper/[0.02]'"
+      >
+        <span>🔥 Top Matched Roles</span>
+        <span class="num text-[11px] px-1.5 py-0.2 rounded" [ngClass]="activeTab() === 'matches' ? 'bg-ink/20 text-ink' : 'bg-paper/10 text-paper/70'">
+          {{ activeStats().topTierCount }}
+        </span>
+      </button>
+
+      <button
+        (click)="setTab('applications')"
+        class="px-3.5 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap flex items-center gap-1.5"
+        [ngClass]="activeTab() === 'applications' ? 'bg-gold text-ink font-semibold' : 'text-paper/60 hover:text-paper bg-paper/[0.02]'"
+      >
+        <span>📬 Applications Dossiers</span>
+        <span class="num text-[11px] px-1.5 py-0.2 rounded" [ngClass]="activeTab() === 'applications' ? 'bg-ink/20 text-ink' : 'bg-paper/10 text-paper/70'">
+          {{ activeStats().applicationsCount }}
+        </span>
+      </button>
+    </div>
+
+    <!-- TAB 1: CAREER STRATEGY & TARGETING -->
+    <div *ngIf="activeTab() === 'overview'" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Target Roles Card -->
+        <div class="p-5 rounded-xl bg-paper/[0.02] border border-paper/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs uppercase font-mono tracking-wider text-gold font-medium">
+              Target Roles & Specializations
+            </h3>
+            <span class="text-[10px] text-paper/40 font-mono">{{ activePersona()?.targetRoles?.length || 0 }} designated</span>
+          </div>
+          <p class="text-xs text-paper/50">
+            LLM matching prompts and EURES semantic searches align directly against these target titles.
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <span
+              *ngFor="let role of activePersona()?.targetRoles || []"
+              class="px-3 py-1.5 rounded-lg bg-paper/[0.05] border border-paper/10 text-xs text-paper font-medium flex items-center gap-1.5 shadow-sm"
+            >
+              <span class="text-gold">✦</span>
+              <span>{{ role }}</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Target Institutions Card -->
+        <div class="p-5 rounded-xl bg-paper/[0.02] border border-paper/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs uppercase font-mono tracking-wider text-gold font-medium">
+              Target Institutions & Employers
+            </h3>
+            <span class="text-[10px] text-paper/40 font-mono">{{ activePersona()?.targetInstitutions?.length || 0 }} prioritized</span>
+          </div>
+          <p class="text-xs text-paper/50">
+            High-value institutional career portals and target employers prioritized for scraping and matching.
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <span
+              *ngFor="let inst of activePersona()?.targetInstitutions || []"
+              class="px-3 py-1.5 rounded-lg bg-gold/10 border border-gold/20 text-xs text-paper font-medium flex items-center gap-1.5"
+            >
+              <span class="text-gold">🏛️</span>
+              <span>{{ inst }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Core Skills & Domain Keywords -->
+        <div class="p-5 rounded-xl bg-paper/[0.02] border border-paper/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs uppercase font-mono tracking-wider text-gold font-medium">
+              Core Technical & Domain Skills
+            </h3>
+            <span class="text-[10px] text-paper/40 font-mono">{{ activePersona()?.coreSkills?.length || 0 }} skills</span>
+          </div>
+          <p class="text-xs text-paper/50">
+            Extracted skill ontology used for vector embedding and match score weighting.
+          </p>
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            <span
+              *ngFor="let skill of activePersona()?.coreSkills || []"
+              class="px-2.5 py-1 rounded-full bg-paper/[0.06] text-xs text-paper/90 border border-paper/10"
+            >
+              {{ skill }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Cross-Border Compliance Profile -->
+        <div class="p-5 rounded-xl bg-paper/[0.02] border border-paper/10 space-y-3">
+          <h3 class="text-xs uppercase font-mono tracking-wider text-gold font-medium">
+            Cross-Border Luxembourg Compliance
+          </h3>
+          <p class="text-xs text-paper/50">
+            Regulatory boundaries tracked for remote and cross-border telework contracts:
+          </p>
+          <div class="space-y-2.5 pt-1 text-xs">
+            <div class="flex justify-between py-1.5 border-b border-paper/5">
+              <span class="text-paper/60">CCSS Social Security Limit:</span>
+              <span class="text-paper font-mono font-medium text-gold">49.9% max telework</span>
+            </div>
+            <div class="flex justify-between py-1.5 border-b border-paper/5">
+              <span class="text-paper/60">Cross-Border Tax Free Days:</span>
+              <span class="text-paper font-mono font-medium">34 days / year</span>
+            </div>
+            <div class="flex justify-between py-1.5">
+              <span class="text-paper/60">ADEM Shortage Qualification:</span>
+              <span class="text-paper font-mono font-medium text-gold">+15% Match Boost</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CV BULLET LIBRARY -->
+    <div *ngIf="activeTab() === 'bullets'" class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-paper/[0.02] border border-paper/10">
+        <div>
+          <h3 class="text-xs uppercase font-mono tracking-wider text-gold font-medium">
+            Curated Achievements & Experience Bullets
+          </h3>
+          <p class="text-xs text-paper/50 mt-0.5">
+            These bullets are dynamically ranked and inserted into tailored cover letters and CV outputs.
+          </p>
+        </div>
+        <a
+          routerLink="/admin"
+          class="px-3 py-1.5 rounded text-xs font-medium bg-gold text-ink hover:bg-gold/90 transition-colors self-start sm:self-auto shrink-0"
+        >
+          Edit / Upload CV PDF in Admin →
+        </a>
+      </div>
+
+      <div *ngIf="!activePersona()?.cvBullets?.length" class="p-8 text-center text-xs text-paper/40">
+        No CV bullets configured for this persona yet.
+      </div>
+
+      <div class="space-y-3">
+        <div
+          *ngFor="let bullet of activePersona()?.cvBullets || []; let i = index"
+          class="p-4 sm:p-5 rounded-xl bg-paper/[0.02] border border-paper/10 hover:border-paper/20 transition-all flex flex-col gap-3 group"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3 min-w-0 flex-1">
+              <span class="w-6 h-6 rounded-full bg-paper/[0.06] text-[11px] font-mono text-paper/60 flex items-center justify-center shrink-0 mt-0.5">
+                {{ i + 1 }}
+              </span>
+              <div class="space-y-1 min-w-0 flex-1">
+                <p class="text-sm text-paper leading-relaxed">
+                  {{ bullet.text }}
+                </p>
+                <p *ngIf="bullet.employer || bullet.period" class="text-xs text-paper/40 font-mono">
+                  <span *ngIf="bullet.employer">{{ bullet.employer }}</span>
+                  <span *ngIf="bullet.employer && bullet.period"> · </span>
+                  <span *ngIf="bullet.period">{{ bullet.period }}</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Copy Action Button -->
+            <button
+              (click)="copyBulletText(bullet)"
+              class="px-2.5 py-1 text-xs rounded font-medium border border-paper/10 text-paper/60 hover:text-paper hover:border-paper/30 transition-colors shrink-0 flex items-center gap-1.5"
+              [title]="'Copy bullet text to clipboard'"
+            >
+              <span *ngIf="copiedBulletId() === bullet.id" class="text-gold font-medium">✓ Copied</span>
+              <span *ngIf="copiedBulletId() !== bullet.id">📋 Copy</span>
+            </button>
+          </div>
+
+          <!-- Tags -->
+          <div *ngIf="bullet.tags?.length" class="flex flex-wrap gap-1.5 pt-2 border-t border-paper/5">
+            <span
+              *ngFor="let tag of bullet.tags"
+              class="px-2 py-0.5 rounded bg-paper/[0.04] text-[10px] text-paper/60 font-mono"
+            >
+              #{{ tag }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: TOP MATCHED ROLES -->
+    <div *ngIf="activeTab() === 'matches'" class="space-y-4">
+      <div class="flex items-center justify-between p-4 rounded-lg bg-paper/[0.02] border border-paper/10">
+        <div>
+          <h3 class="text-xs uppercase font-mono tracking-wider text-gold font-medium">
+            Top-Tier Roles for {{ activePersona()?.displayName }} (≥70% Match)
+          </h3>
+          <p class="text-xs text-paper/50 mt-0.5">
+            Highest scoring opportunities ranked by Gemini embedding similarity and ADEM shortage boost.
+          </p>
+        </div>
+        <a
+          routerLink="/dashboard"
+          class="px-3 py-1.5 rounded text-xs font-medium bg-paper/10 text-paper hover:bg-paper/15 transition-colors shrink-0"
+        >
+          Open Dashboard Board →
+        </a>
+      </div>
+
+      <div *ngIf="topMatches().length === 0" class="p-8 text-center text-xs text-paper/40">
+        No active top-tier vacancies matched yet. Check the Dashboard or Ingestion runs.
+      </div>
+
+      <div class="space-y-3">
+        <div
+          *ngFor="let v of topMatches()"
+          class="p-4 sm:p-5 rounded-xl bg-paper/[0.02] border border-paper/10 hover:border-paper/20 transition-all flex flex-col gap-3"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1 space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <a
+                  [routerLink]="jobDetailUrl(v.jobId)"
+                  class="text-sm sm:text-base font-medium text-paper hover:text-gold transition-colors"
+                >
+                  {{ v.title }}
+                </a>
+                <span *ngIf="v.shortageOccupationMatch" class="text-[10px] px-2 py-0.5 rounded bg-gold/15 text-gold font-medium">
+                  ADEM Shortage Boost
+                </span>
+              </div>
+
+              <p class="text-xs text-paper/60">
+                <span class="font-medium text-paper/80">{{ v.employer }}</span> ·
+                <span>{{ v.location.city || 'Luxembourg' }}</span>
+                <span *ngIf="v.location.allowsTelework" class="text-gold ml-2">🌐 Remote flexible</span>
+                <span *ngIf="v.estimatedSalary" class="text-paper/90 ml-2 num font-mono">💶 {{ formatAnnualSalary(v.estimatedSalary) }}</span>
+              </p>
+            </div>
+
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              <span class="text-base sm:text-lg font-mono font-semibold px-2.5 py-0.5 rounded bg-gold/15 text-gold num">
+                {{ (v.matchScore ?? 0) * 100 | number: '1.0-0' }}%
+              </span>
+              <a [routerLink]="jobDetailUrl(v.jobId)" class="text-xs text-gold hover:underline">
+                View Dossier →
+              </a>
+            </div>
+          </div>
+
+          <div *ngIf="v.extractedSkillLabels?.length" class="flex flex-wrap gap-1 pt-2 border-t border-paper/5">
+            <span
+              *ngFor="let sk of (v.extractedSkillLabels || []).slice(0, 6)"
+              class="px-2 py-0.5 rounded bg-paper/[0.04] text-[10px] text-paper/60"
+            >
+              {{ sk }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: APPLICATIONS DOSSIERS -->
+    <div *ngIf="activeTab() === 'applications'" class="space-y-4">
+      <div class="flex items-center justify-between p-4 rounded-lg bg-paper/[0.02] border border-paper/10">
+        <div>
+          <h3 class="text-xs uppercase font-mono tracking-wider text-gold font-medium">
+            Applications & Tailored Cover Letters
+          </h3>
+          <p class="text-xs text-paper/50 mt-0.5">
+            All AI generated application dossiers and application status history for {{ activePersona()?.displayName }}.
+          </p>
+        </div>
+        <a
+          routerLink="/applications"
+          class="px-3 py-1.5 rounded text-xs font-medium bg-paper/10 text-paper hover:bg-paper/15 transition-colors shrink-0"
+        >
+          View All Applications →
+        </a>
+      </div>
+
+      <div *ngIf="activeApplications().length === 0" class="p-8 text-center text-xs text-paper/40">
+        No applications generated for this candidate yet.
+      </div>
+
+      <div class="space-y-3">
+        <div
+          *ngFor="let app of activeApplications()"
+          class="p-4 sm:p-5 rounded-xl bg-paper/[0.02] border border-paper/10 flex flex-col gap-3"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <a [routerLink]="jobDetailUrl(app.jobId)" class="text-sm sm:text-base font-medium text-paper hover:text-gold transition-colors">
+                  Application #{{ app.applicationId }}
+                </a>
+              </div>
+              <p class="text-xs text-paper/40 mt-1 font-mono">
+                Job ID: {{ app.jobId }} · Created: {{ app.createdAt | date: 'MMM d, y' }}
+              </p>
+            </div>
+
+            <span
+              class="shrink-0 text-xs font-medium px-2.5 py-1 rounded"
+              [ngClass]="{
+                'bg-paper/[0.06] text-paper/50': app.status === 'draft' || app.status === 'reviewed',
+                'bg-gold/10 text-gold': app.status === 'submitted',
+                'bg-signal-amber/10 text-signal-amber': app.status === 'interviewing',
+                'bg-signal-green/10 text-signal-green': app.status === 'offer',
+                'bg-signal-red/10 text-signal-red': app.status === 'rejected' || app.status === 'withdrawn'
+              }"
+            >
+              {{ statusLabel(app.status) }}
+            </span>
+          </div>
+
+          <p *ngIf="app.generationRationale" class="text-xs text-paper/70 italic bg-paper/[0.03] p-3 rounded-lg border border-paper/5 leading-relaxed">
+            "{{ app.generationRationale }}"
+          </p>
+
+          <div class="flex items-center justify-between pt-2 border-t border-paper/5 text-xs">
+            <span class="text-paper/40">
+              Aligned Bullets: <span class="num text-paper/80 font-medium">{{ app.reorderedCvBullets.length || 0 }}</span>
+            </span>
+            <a [routerLink]="jobDetailUrl(app.jobId)" class="text-gold hover:underline">
+              Open Full Dossier →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

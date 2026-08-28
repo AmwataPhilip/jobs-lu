@@ -1,12 +1,12 @@
 <div class="min-h-screen bg-ink">
-  <header class="flex items-center justify-between px-6 py-4 border-b border-paper/10">
+  <header class="flex flex-wrap items-center justify-between gap-y-2 px-4 sm:px-6 py-4 border-b border-paper/10">
     <div>
       <a routerLink="/dashboard" class="text-xs text-paper/40 hover:text-paper/70 transition-colors">
         ← Back to dashboard
       </a>
       <h1 class="font-display font-medium text-base text-paper mt-1">Other matches</h1>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <a
         routerLink="/dashboard"
         class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
@@ -30,6 +30,12 @@
         class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
       >
         Companies
+      </a>
+      <a
+        routerLink="/profiles"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Profiles
       </a>
       <a
         routerLink="/admin"
@@ -132,7 +138,7 @@
     <input
       type="text"
       placeholder="Search title, employer, skill…"
-      class="w-56 text-xs bg-paper/[0.06] text-paper placeholder:text-paper/30 rounded border border-paper/10 px-3 py-1.5 focus:outline-none focus:border-gold/50"
+      class="w-full sm:w-56 text-xs bg-paper/[0.06] text-paper placeholder:text-paper/30 rounded border border-paper/10 px-3 py-1.5 focus:outline-none focus:border-gold/50"
       [value]="searchQuery()"
       (input)="setSearchQuery($any($event.target).value)"
     />
@@ -171,7 +177,7 @@
       <span class="num shrink-0 w-10 text-right text-xs text-paper/30 pt-0.5">
         {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
       </span>
-      <div class="hidden group-hover:flex items-center gap-2 shrink-0 pt-0.5">
+      <div class="flex md:hidden md:group-hover:flex items-center gap-2 shrink-0 pt-0.5">
         <button
           *ngIf="tab() === 'archived'"
           class="text-[11px] text-paper/40 hover:text-paper transition-colors"

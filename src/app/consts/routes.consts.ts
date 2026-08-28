@@ -7,6 +7,7 @@ export const ROUTES = {
   otherMatches: 'matches/other',
   applications: 'applications',
   companies: 'companies',
+  profiles: 'profiles',
 };
 
 export function jobDetailUrl(jobId: string): string {

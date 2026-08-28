@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-ink flex flex-col">
   <!-- Top Navigation Header -->
-  <header class="flex items-center justify-between px-6 py-4 border-b border-paper/10 bg-ink shrink-0">
+  <header class="flex flex-wrap items-center justify-between gap-y-2 px-4 sm:px-6 py-4 border-b border-paper/10 bg-ink shrink-0">
     <div class="flex items-center gap-3">
       <a routerLink="/dashboard" class="flex items-center gap-2 text-paper hover:opacity-80 transition-opacity">
         <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
@@ -14,7 +14,7 @@
         </div>
       </a>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <a
         routerLink="/dashboard"
         class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
@@ -40,6 +40,12 @@
         Companies
       </a>
       <a
+        routerLink="/profiles"
+        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
+      >
+        Profiles
+      </a>
+      <a
         routerLink="/admin"
         class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper transition-colors"
       >
@@ -58,7 +64,7 @@
   <div class="border-b border-paper/10 bg-paper/[0.02] px-6 py-3 shrink-0 flex flex-wrap items-center justify-between gap-4">
     <!-- Search and Filters -->
     <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-      <div class="relative flex-1 max-w-md">
+      <div class="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
         <input
           type="text"
           class="w-full pl-8 pr-3 py-1.5 text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 placeholder:text-paper/30 focus:outline-none focus:border-gold/50"
