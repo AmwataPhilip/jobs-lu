@@ -52,9 +52,21 @@
       >
         <option value="matchScoreDesc">Highest Match (Default)</option>
         <option value="matchScoreAsc">Lowest Match</option>
-        <option value="postedAtDesc">Most Recent</option>
+        <option value="matchedAtDesc">Newest Match</option>
+        <option value="postedAtDesc">Most Recently Posted</option>
         <option value="salaryDesc">Highest Salary</option>
+        <option value="complianceAsc">Lowest Tax Risk</option>
       </select>
+    </label>
+
+    <label class="flex items-center gap-1.5 text-xs text-paper/50 shrink-0 cursor-pointer" title="Hide roles with ≥49.9% telework (CCSS cross-border social-security risk)">
+      <input
+        type="checkbox"
+        class="accent-gold"
+        [checked]="hideCcssRisk()"
+        (change)="setHideCcssRisk($any($event.target).checked)"
+      />
+      <span>Hide CCSS risk</span>
     </label>
 
     <label class="flex items-center gap-3 shrink-0">
@@ -90,11 +102,12 @@
       <div>
         <a
           *ngFor="let job of philipPageItems()"
+          data-job-row
           [routerLink]="jobDetailUrl(job.jobId)"
           class="group relative flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
           <span class="num shrink-0 w-12 text-right text-base font-medium text-gold pt-0.5">
-            {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
+            {{ scoreFor(job, 'philip') * 100 | number: '1.0-0' }}
           </span>
           <div class="min-w-0 flex-1">
             <h3 class="text-sm font-medium text-paper truncate">{{ job.title }}</h3>
@@ -105,12 +118,18 @@
                 · remote up to <span class="num">{{ job.location.teleworkPercentageMax }}</span>%
               </ng-container>
             </p>
-            <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="job.shortageOccupationMatch || job.status === 'applied' || (job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high')">
+            <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="job.shortageOccupationMatch || job.status === 'applied' || scoreFor(job, 'chiara') * 100 >= topMatchThreshold || (job.location.allowsTelework && complianceFor(job.location.teleworkPercentageMax).ccssRisk === 'high')">
               <span
                 *ngIf="job.shortageOccupationMatch"
                 class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-green/10 text-signal-green"
               >
                 Shortage occupation
+              </span>
+              <span
+                *ngIf="scoreFor(job, 'chiara') * 100 >= topMatchThreshold"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-paper/10 text-paper/60"
+              >
+                Also fits Chiara
               </span>
               <span
                 *ngIf="job.status === 'applied'"
@@ -119,7 +138,7 @@
                 Application ready
               </span>
               <span
-                *ngIf="job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high'"
+                *ngIf="job.location.allowsTelework && complianceFor(job.location.teleworkPercentageMax).ccssRisk === 'high'"
                 class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-red/10 text-signal-red"
               >
                 CCSS risk
@@ -181,11 +200,12 @@
       <div>
         <a
           *ngFor="let job of chiaraPageItems()"
+          data-job-row
           [routerLink]="jobDetailUrl(job.jobId)"
           class="group relative flex items-start gap-4 px-6 py-4 border-b border-paper/5 hover:bg-paper/[0.04] transition-colors"
         >
           <span class="num shrink-0 w-12 text-right text-base font-medium text-gold pt-0.5">
-            {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
+            {{ scoreFor(job, 'chiara') * 100 | number: '1.0-0' }}
           </span>
           <div class="min-w-0 flex-1">
             <h3 class="text-sm font-medium text-paper truncate">{{ job.title }}</h3>
@@ -196,12 +216,18 @@
                 · remote up to <span class="num">{{ job.location.teleworkPercentageMax }}</span>%
               </ng-container>
             </p>
-            <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="job.shortageOccupationMatch || job.status === 'applied' || (job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high')">
+            <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="job.shortageOccupationMatch || job.status === 'applied' || scoreFor(job, 'philip') * 100 >= topMatchThreshold || (job.location.allowsTelework && complianceFor(job.location.teleworkPercentageMax).ccssRisk === 'high')">
               <span
                 *ngIf="job.shortageOccupationMatch"
                 class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-green/10 text-signal-green"
               >
                 Shortage occupation
+              </span>
+              <span
+                *ngIf="scoreFor(job, 'philip') * 100 >= topMatchThreshold"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-paper/10 text-paper/60"
+              >
+                Also fits Philip
               </span>
               <span
                 *ngIf="job.status === 'applied'"
@@ -210,7 +236,7 @@
                 Application ready
               </span>
               <span
-                *ngIf="job.location.allowsTelework && assessCompliance(job.location.teleworkPercentageMax).ccssRisk === 'high'"
+                *ngIf="job.location.allowsTelework && complianceFor(job.location.teleworkPercentageMax).ccssRisk === 'high'"
                 class="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-signal-red/10 text-signal-red"
               >
                 CCSS risk

@@ -24,7 +24,7 @@ export { adminRematchAll, adminRematchJob } from './admin/rematchCallable';
 
 // Vacancy management callables (dashboard/job-detail job card actions) —
 // allowlist-gated.
-export { archiveVacancy, restoreVacancy, deleteVacancy } from './vacancies/manageVacancyCallable';
+export { archiveVacancy, restoreVacancy, deleteVacancy, setVacancyDeadline } from './vacancies/manageVacancyCallable';
 
 // Application pipeline tracking (job-detail / applications page) — allowlist-gated.
 export { updateApplicationStatus } from './applications/updateApplicationStatusCallable';

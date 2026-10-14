@@ -33,9 +33,11 @@ export interface VacancyLocation {
   teleworkPercentageMax: number;
 }
 
-// Firestore document shape for jobslu_vacancies/{jobId}. `embedding` is
-// written via FieldValue.vector() and isn't representable as a plain field
-// here — see matching/extractEscoAndEmbed.ts.
+// Firestore document shape for jobslu_vacancies/{jobId}. The embedding vector
+// used for matching is NOT stored here — it's a large field the client never
+// needs, so it lives in a sibling doc jobslu_vacancy_embeddings/{jobId},
+// written/read only by the Admin SDK (see matching/extractEscoAndEmbed.ts and
+// matching/scoreMatch.ts).
 export interface Vacancy {
   jobId: string;
   source: VacancySource;
@@ -52,8 +54,19 @@ export interface Vacancy {
   extractedSkillLabels: string[];
   estimatedSalary: number | null;
   shortageOccupationMatch: string | null;
+  // The single best-fitting persona and its score — kept as the "primary"
+  // match for backward compatibility and default display/sort.
   matchedPersona: PersonaId | null;
   matchScore: number | null;
+  // Per-persona scores so a role that fits BOTH people surfaces on both
+  // dashboards, not just the marginally-better one's. Written by scoreMatch.ts
+  // alongside matchedPersona/matchScore. Absent on pre-migration docs — read
+  // via a helper that falls back to matchScore when matchedPersona matches.
+  matchScores?: Partial<Record<PersonaId, number>>;
+  // When scoreMatch last (re)scored this vacancy. Distinct from postedAt
+  // (when the listing was published) and ingestedAt (when we first fetched
+  // it) — this is what "new matches since yesterday" in the digest keys off.
+  matchedAt?: FirebaseFirestore.Timestamp | FirebaseFirestore.FieldValue | null;
   // When the listing was originally published. EURES exposes this directly
   // (creationDate); Silicon Luxembourg shows it on each listing card. Null
   // when a source doesn't expose it.

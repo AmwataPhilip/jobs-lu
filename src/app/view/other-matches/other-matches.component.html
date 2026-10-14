@@ -134,7 +134,7 @@
         </div>
       </div>
       <span class="num shrink-0 w-10 text-right text-xs text-paper/30 pt-0.5">
-        {{ (job.matchScore ?? 0) * 100 | number: '1.0-0' }}
+        {{ score(job) * 100 | number: '1.0-0' }}
       </span>
       <div class="flex md:hidden md:group-hover:flex items-center gap-2 shrink-0 pt-0.5">
         <button

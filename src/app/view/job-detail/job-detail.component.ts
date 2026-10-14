@@ -54,6 +54,9 @@ export class JobDetailComponent {
   rematching = signal(false);
   rematchError = signal<string | null>(null);
 
+  deadlineSaving = signal(false);
+  deadlineError = signal<string | null>(null);
+
   cvLanguages = CV_LANGUAGES;
   selectedCvLanguage = signal(CV_LANGUAGES[0]);
   generatingCv = signal(false);
@@ -103,6 +106,29 @@ export class JobDetailComponent {
     this.statusNote.set('');
   }
 
+  // Formats a Firestore Timestamp to a yyyy-mm-dd value for <input type="date">.
+  toDateInput(deadline: { toDate: () => Date } | null | undefined): string {
+    if (!deadline) {
+      return '';
+    }
+    const d = deadline.toDate();
+    const month = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${day}`;
+  }
+
+  async saveDeadline(jobId: string, value: string | null) {
+    this.deadlineSaving.set(true);
+    this.deadlineError.set(null);
+    try {
+      await this.vacancyActions.setDeadline(jobId, value && value.length > 0 ? value : null);
+    } catch (error) {
+      this.deadlineError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.deadlineSaving.set(false);
+    }
+  }
+
   async archive(jobId: string) {
     await this.vacancyActions.archive(jobId);
     this.router.navigateByUrl(this.dashboardUrl);
@@ -112,12 +138,24 @@ export class JobDetailComponent {
     await this.vacancyActions.restore(jobId);
   }
 
+  private deleteTimer: ReturnType<typeof setTimeout> | null = null;
+
   async deleteVacancy(jobId: string) {
     if (this.pendingDelete()) {
+      if (this.deleteTimer) {
+        clearTimeout(this.deleteTimer);
+        this.deleteTimer = null;
+      }
       await this.vacancyActions.delete(jobId);
       this.router.navigateByUrl(this.dashboardUrl);
     } else {
       this.pendingDelete.set(true);
+      // Auto-disarm after a few seconds so a forgotten armed delete can't fire
+      // on a later stray click.
+      this.deleteTimer = setTimeout(() => {
+        this.pendingDelete.set(false);
+        this.deleteTimer = null;
+      }, 4000);
     }
   }
 

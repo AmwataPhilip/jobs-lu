@@ -112,6 +112,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Embedding vectors, split off the vacancy doc so clients never download
+    // them. Only Cloud Functions (Admin SDK, which bypasses rules) ever touch
+    // these — clients have no reason to read them, so deny both.
+    match /jobslu_vacancy_embeddings/{jobId} {
+      allow read, write: if false;
+    }
+
     match /jobslu_personas/{personaId} {
       allow read: if isAllowlisted();
       allow write: if false;
@@ -130,6 +137,17 @@ service cloud.firestore {
     match /jobslu_ingestion_runs/{runId} {
       allow read: if isAllowlisted();
       allow write: if false;
+    }
+
+    // In-app digest notifications (new matches / approaching deadlines),
+    // written server-side by notifications/sendDigest.ts as a fallback to
+    // email. Clients read them and may mark their own as read (only the
+    // `readAt` field), but never create/delete them.
+    match /jobslu_notifications/{notificationId} {
+      allow read: if isAllowlisted();
+      allow create, delete: if false;
+      allow update: if isAllowlisted()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']);
     }
 
     // Users may read/write only their own profile doc.

@@ -7,4 +7,5 @@ export const COLLECTIONS = {
   ShortageOccupations: 'jobslu_shortage_occupations',
   Applications: 'jobslu_applications',
   IngestionRuns: 'jobslu_ingestion_runs',
+  Notifications: 'jobslu_notifications',
 };

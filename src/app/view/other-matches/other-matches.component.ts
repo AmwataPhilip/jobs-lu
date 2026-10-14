@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { VacanciesService } from '../../services/vacancies.service';
 import { VacancyActionsService } from '../../services/vacancy-actions.service';
 import { PersonaId } from '../../models/persona.model';
-import { Vacancy } from '../../models/vacancy.model';
+import { Vacancy, personaScore } from '../../models/vacancy.model';
 import { jobDetailUrl } from '../../consts/routes.consts';
 import { TOP_MATCH_THRESHOLD } from '../dashboard/dashboard.component';
 import { AppHeaderComponent } from '../../components/app-header/app-header.component';
@@ -19,6 +19,13 @@ export type DateWindow = 'any' | '7' | '30';
 
 const PAGE_SIZE = 15;
 const DAY_MS = 86400000;
+const DELETE_CONFIRM_WINDOW_MS = 4000;
+
+// Score for the tagged (primary) persona, handling the per-persona map and
+// pre-migration docs — see personaScore() in vacancy.model.ts.
+function taggedScore(v: TaggedVacancy): number {
+  return personaScore(v, v.persona) ?? 0;
+}
 
 @Component({
   selector: 'app-other-matches',
@@ -35,6 +42,12 @@ export class OtherMatchesComponent {
   personaLabel(persona: PersonaId): string {
     return persona === 'philip' ? 'Philip' : 'Chiara';
   }
+
+  score(job: TaggedVacancy): number {
+    return taggedScore(job);
+  }
+
+  private deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   private philipMatched = toSignal(this.vacanciesService.getMatchedVacancies('philip'), {
     initialValue: [] as Vacancy[],
@@ -70,7 +83,7 @@ export class OtherMatchesComponent {
     const chiaraSource = onArchivedTab ? this.chiaraArchived() : this.chiaraMatched();
     let combined = [...this.tag(philipSource, 'philip'), ...this.tag(chiaraSource, 'chiara')];
     if (!onArchivedTab) {
-      combined = combined.filter((v) => (v.matchScore ?? 0) * 100 < TOP_MATCH_THRESHOLD);
+      combined = combined.filter((v) => taggedScore(v) * 100 < TOP_MATCH_THRESHOLD);
     }
     const filter = this.personaFilter();
     if (filter !== 'both') {
@@ -120,7 +133,7 @@ export class OtherMatchesComponent {
         return list.sort((a, b) => (b.postedAt?.toMillis() ?? 0) - (a.postedAt?.toMillis() ?? 0));
       case 'matchScore':
       default:
-        return list.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+        return list.sort((a, b) => taggedScore(b) - taggedScore(a));
     }
   });
 
@@ -180,16 +193,31 @@ export class OtherMatchesComponent {
     return this.pendingDelete().has(jobId);
   }
 
+  private disarmDelete(jobId: string) {
+    const timer = this.deleteTimers.get(jobId);
+    if (timer) {
+      clearTimeout(timer);
+      this.deleteTimers.delete(jobId);
+    }
+    if (this.pendingDelete().has(jobId)) {
+      const next = new Set(this.pendingDelete());
+      next.delete(jobId);
+      this.pendingDelete.set(next);
+    }
+  }
+
   deleteJob(jobId: string, event: Event) {
     event.stopPropagation();
     event.preventDefault();
     if (this.pendingDelete().has(jobId)) {
+      this.disarmDelete(jobId);
       this.vacancyActions.delete(jobId);
-      const next = new Set(this.pendingDelete());
-      next.delete(jobId);
-      this.pendingDelete.set(next);
     } else {
       this.pendingDelete.set(new Set(this.pendingDelete()).add(jobId));
+      this.deleteTimers.set(
+        jobId,
+        setTimeout(() => this.disarmDelete(jobId), DELETE_CONFIRM_WINDOW_MS)
+      );
     }
   }
 }

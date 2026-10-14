@@ -12,75 +12,133 @@
       </div>
     </a>
 
-    <!-- Desktop nav -->
-    <nav class="hidden md:flex items-center gap-2">
-      <a
-        routerLink="/dashboard"
-        routerLinkActive="text-ink bg-gold"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
-      >
-        Dashboard
-      </a>
-      <a
-        routerLink="/matches/other"
-        routerLinkActive="text-ink bg-gold"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
-      >
-        Other matches
-      </a>
-      <a
-        routerLink="/applications"
-        routerLinkActive="text-ink bg-gold"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
-      >
-        Applications
-      </a>
-      <a
-        routerLink="/companies"
-        routerLinkActive="text-ink bg-gold"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
-      >
-        Companies
-      </a>
-      <a
-        routerLink="/profiles"
-        routerLinkActive="text-ink bg-gold"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
-      >
-        Profiles
-      </a>
-      <a
-        routerLink="/admin"
-        routerLinkActive="text-ink bg-gold"
-        class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
-      >
-        Admin
-      </a>
-      <button
-        class="px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors"
-        (click)="authenticationService.signOut()"
-      >
-        Sign out
-      </button>
-    </nav>
+    <div class="flex items-center gap-2">
+      <!-- Notifications bell -->
+      <div class="relative">
+        <button
+          class="relative p-2 text-paper/60 hover:text-paper transition-colors"
+          (click)="toggleNotifications()"
+          [attr.aria-expanded]="notificationsOpen()"
+          aria-label="Notifications"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span
+            *ngIf="unreadCount() > 0"
+            class="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 flex items-center justify-center text-[10px] font-semibold leading-none text-ink bg-gold rounded-full"
+          >
+            {{ unreadCount() }}
+          </span>
+        </button>
 
-    <!-- Mobile hamburger toggle -->
-    <button
-      class="md:hidden p-2 -mr-2 text-paper/70 hover:text-paper transition-colors"
-      (click)="toggleMenu()"
-      [attr.aria-expanded]="menuOpen()"
-      aria-label="Toggle menu"
-    >
-      <svg *ngIf="!menuOpen()" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <line x1="3" y1="6" x2="21" y2="6" />
-        <line x1="3" y1="12" x2="21" y2="12" />
-        <line x1="3" y1="18" x2="21" y2="18" />
-      </svg>
-      <svg *ngIf="menuOpen()" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <line x1="6" y1="6" x2="18" y2="18" />
-        <line x1="6" y1="18" x2="18" y2="6" />
-      </svg>
-    </button>
+        <!-- Dropdown panel -->
+        <div
+          *ngIf="notificationsOpen()"
+          class="absolute right-0 top-full z-30 mt-1 w-80 max-h-96 overflow-y-auto bg-ink border border-paper/15 rounded-md shadow-lg"
+        >
+          <div class="flex items-center justify-between px-4 py-3 border-b border-paper/10">
+            <span class="text-xs font-medium text-paper/70 uppercase tracking-wide">Notifications</span>
+            <button class="text-xs text-paper/40 hover:text-paper transition-colors" (click)="closeNotifications()">Close</button>
+          </div>
+
+          <p *ngIf="notifications().length === 0" class="px-4 py-8 text-center text-xs text-paper/30">
+            No notifications yet.
+          </p>
+
+          <a
+            *ngFor="let n of notifications()"
+            routerLink="/dashboard"
+            (click)="closeNotifications()"
+            class="block px-4 py-3 border-b border-paper/5 border-l-2 hover:bg-paper/[0.04] transition-colors"
+            [ngClass]="n.readAt ? 'border-l-transparent' : 'border-l-gold bg-paper/[0.03]'"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-medium text-paper">{{ n.title }}</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-paper/10 text-paper/50">{{ personaLabel(n.persona) }}</span>
+            </div>
+            <p class="text-xs text-paper/50 mt-1">{{ n.summary }}</p>
+            <ul *ngIf="n.topMatches?.length" class="mt-2 space-y-0.5">
+              <li *ngFor="let m of n.topMatches" class="text-[11px] text-paper/40 truncate">
+                <span class="num text-gold">{{ m.score }}%</span> · {{ m.title }} — {{ m.employer }}
+              </li>
+            </ul>
+            <p *ngIf="!n.emailSent" class="mt-1.5 text-[10px] text-signal-amber">Email not delivered — shown here instead</p>
+          </a>
+        </div>
+      </div>
+
+      <!-- Desktop nav -->
+      <nav class="hidden md:flex items-center gap-2">
+        <a
+          routerLink="/dashboard"
+          routerLinkActive="text-ink bg-gold"
+          class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+        >
+          Dashboard
+        </a>
+        <a
+          routerLink="/matches/other"
+          routerLinkActive="text-ink bg-gold"
+          class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+        >
+          Other matches
+        </a>
+        <a
+          routerLink="/applications"
+          routerLinkActive="text-ink bg-gold"
+          class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+        >
+          Applications
+        </a>
+        <a
+          routerLink="/companies"
+          routerLinkActive="text-ink bg-gold"
+          class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+        >
+          Companies
+        </a>
+        <a
+          routerLink="/profiles"
+          routerLinkActive="text-ink bg-gold"
+          class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+        >
+          Profiles
+        </a>
+        <a
+          routerLink="/admin"
+          routerLinkActive="text-ink bg-gold"
+          class="px-3 py-1.5 text-xs font-medium text-paper/60 hover:text-paper rounded transition-colors"
+        >
+          Admin
+        </a>
+        <button
+          class="px-3 py-1.5 text-xs font-medium text-paper bg-paper/10 rounded hover:bg-paper/15 transition-colors"
+          (click)="authenticationService.signOut()"
+        >
+          Sign out
+        </button>
+      </nav>
+
+      <!-- Mobile hamburger toggle -->
+      <button
+        class="md:hidden p-2 -mr-2 text-paper/70 hover:text-paper transition-colors"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen()"
+        aria-label="Toggle menu"
+      >
+        <svg *ngIf="!menuOpen()" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+        <svg *ngIf="menuOpen()" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="6" y1="18" x2="18" y2="6" />
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Mobile menu panel -->

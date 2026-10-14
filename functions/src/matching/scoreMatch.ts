@@ -1,4 +1,4 @@
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { cosineSimilarity } from '../lib/vectorMath';
 import { PersonaId } from '../config/personas';
@@ -6,13 +6,16 @@ import { PersonaId } from '../config/personas';
 const COLLECTIONS = {
   Vacancies: 'jobslu_vacancies',
   Personas: 'jobslu_personas',
+  // The embedding vector lives in its own collection (not on the vacancy doc)
+  // so the client never downloads it — see extractEscoAndEmbed.ts.
+  VacancyEmbeddings: 'jobslu_vacancy_embeddings',
 };
 
 // Only two fixed personas, so an in-memory nearest-neighbor comparison is
 // simpler and easier to verify than standing up a Firestore findNearest()
-// query for a 2-candidate set. The vector index on jobslu_vacancies.embedding
-// (firestore.indexes.json) is kept for a possible future "search vacancies
-// by free-text query" feature, not used here.
+// query for a 2-candidate set. The vector index on
+// jobslu_vacancy_embeddings.embedding (firestore.indexes.json) is kept for a
+// possible future "search vacancies by free-text query" feature, not used here.
 const SHORTAGE_OCCUPATION_BOOST = 0.15;
 
 interface VectorField {
@@ -27,7 +30,27 @@ function toVectorArray(value: unknown): number[] | null {
   ) {
     return (value as VectorField).toArray();
   }
+  // Pre-migration docs stored the embedding inline as a plain array.
+  if (Array.isArray(value) && value.every((n) => typeof n === 'number')) {
+    return value as number[];
+  }
   return null;
+}
+
+// Reads a vacancy's embedding from its sibling jobslu_vacancy_embeddings doc,
+// falling back to an inline `embedding` field on the vacancy doc itself for
+// vacancies embedded before the field was moved off-document.
+async function readVacancyEmbedding(
+  db: FirebaseFirestore.Firestore,
+  jobId: string,
+  inlineFallback: unknown
+): Promise<number[] | null> {
+  const embSnap = await db.collection(COLLECTIONS.VacancyEmbeddings).doc(jobId).get();
+  const fromSibling = toVectorArray(embSnap.data()?.['embedding']);
+  if (fromSibling) {
+    return fromSibling;
+  }
+  return toVectorArray(inlineFallback);
 }
 
 export async function scoreMatch(jobId: string): Promise<void> {
@@ -41,7 +64,7 @@ export async function scoreMatch(jobId: string): Promise<void> {
     embedding?: unknown;
     shortageOccupationMatch: string | null;
   };
-  const vacancyVector = toVectorArray(vacancy.embedding);
+  const vacancyVector = await readVacancyEmbedding(db, jobId, vacancy.embedding);
   if (!vacancyVector) {
     throw new Error(
       `Vacancy ${jobId} has no embedding — run extractEscoAndEmbed first`
@@ -55,6 +78,8 @@ export async function scoreMatch(jobId: string): Promise<void> {
     );
   }
 
+  const hasShortage = Boolean(vacancy.shortageOccupationMatch);
+  const matchScores: Partial<Record<PersonaId, number>> = {};
   let bestPersona: PersonaId | null = null;
   let bestScore = -Infinity;
 
@@ -68,8 +93,15 @@ export async function scoreMatch(jobId: string): Promise<void> {
       continue;
     }
     const similarity = Math.max(0, cosineSimilarity(vacancyVector, personaVector));
-    if (similarity > bestScore) {
-      bestScore = similarity;
+    // Shortage-occupation boost is persona-independent, so apply it to every
+    // persona's score (not only the winner's). It still can't change which
+    // persona is "best" since it shifts all scores equally.
+    const boosted = hasShortage
+      ? Math.min(1, similarity + SHORTAGE_OCCUPATION_BOOST)
+      : similarity;
+    matchScores[persona.personaId] = boosted;
+    if (boosted > bestScore) {
+      bestScore = boosted;
       bestPersona = persona.personaId;
     }
   }
@@ -78,20 +110,19 @@ export async function scoreMatch(jobId: string): Promise<void> {
     throw new Error('No persona had a usable embedding to compare against');
   }
 
-  const boosted = vacancy.shortageOccupationMatch
-    ? Math.min(1, bestScore + SHORTAGE_OCCUPATION_BOOST)
-    : bestScore;
-
   await vacancyRef.update({
     matchedPersona: bestPersona,
-    matchScore: boosted,
+    matchScore: bestScore,
+    matchScores,
+    matchedAt: FieldValue.serverTimestamp(),
     status: 'matched',
   });
 
   logger.info('scoreMatch complete', {
     jobId,
     matchedPersona: bestPersona,
-    matchScore: boosted,
-    shortageBoosted: Boolean(vacancy.shortageOccupationMatch),
+    matchScore: bestScore,
+    matchScores,
+    shortageBoosted: hasShortage,
   });
 }

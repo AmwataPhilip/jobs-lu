@@ -18,4 +18,9 @@ export class VacancyActionsService {
   delete(jobId: string) {
     return httpsCallable(this.functions, 'deleteVacancy')({ jobId });
   }
+
+  // deadline is an ISO date string (YYYY-MM-DD) or null to clear it.
+  setDeadline(jobId: string, deadline: string | null) {
+    return httpsCallable(this.functions, 'setVacancyDeadline')({ jobId, deadline });
+  }
 }

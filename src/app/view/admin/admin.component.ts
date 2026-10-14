@@ -98,6 +98,14 @@ export interface PlatformStats {
   };
 }
 
+interface SourceHealth {
+  source: string;
+  fetched: number;
+  new: number;
+  status: 'ok' | 'empty' | 'error' | 'skipped';
+  detail: string | null;
+}
+
 interface IngestionResult {
   runId: string;
   status: string;
@@ -106,6 +114,7 @@ interface IngestionResult {
   jobsRetried: number;
   jobsMatched: number;
   sourcesSkipped: { source: string; reason: string }[];
+  sourceHealth?: SourceHealth[];
   errors: { source: string; message: string }[];
 }
 

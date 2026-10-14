@@ -106,6 +106,32 @@
       </p>
     </div>
 
+    <div class="mt-6">
+      <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-2">Application deadline</h2>
+      <p class="text-xs text-paper/30 mb-2">
+        Auto-detected from the posting when stated; set it by hand otherwise to drive the daily deadline reminders.
+      </p>
+      <div class="flex items-center gap-3 flex-wrap">
+        <input
+          type="date"
+          class="text-xs bg-paper/[0.06] text-paper rounded border border-paper/10 px-2 py-1.5 focus:outline-none focus:border-gold/50 [color-scheme:dark]"
+          [disabled]="deadlineSaving()"
+          [value]="toDateInput(job.applicationDeadline)"
+          (change)="saveDeadline(job.jobId, $any($event.target).value)"
+        />
+        <button
+          *ngIf="job.applicationDeadline"
+          class="text-[11px] text-paper/40 hover:text-signal-red transition-colors disabled:opacity-40"
+          [disabled]="deadlineSaving()"
+          (click)="saveDeadline(job.jobId, null)"
+        >
+          Clear
+        </button>
+        <span *ngIf="deadlineSaving()" class="text-[11px] text-paper/40">Saving…</span>
+      </div>
+      <p *ngIf="deadlineError()" class="mt-1 text-xs text-signal-red">{{ deadlineError() }}</p>
+    </div>
+
     <div *ngIf="job.extractedSkillLabels?.length" class="mt-6">
       <h2 class="text-[11px] font-medium text-paper/50 uppercase tracking-wide mb-2">Requested skills</h2>
       <div class="flex flex-wrap gap-1.5">

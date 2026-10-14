@@ -13,8 +13,25 @@ import { fetchCaceisJobs } from './fetchCaceisJobs';
 import { APIFY_SOURCES, fetchApifySource } from './fetchApifySource';
 import { extractEscoAndEmbed } from '../matching/extractEscoAndEmbed';
 import { scoreMatch } from '../matching/scoreMatch';
+import { computeMatchBudget } from './matchBudget';
 
 const COLLECTIONS = { IngestionRuns: 'jobslu_ingestion_runs', Vacancies: 'jobslu_vacancies' };
+
+// Per-source outcome so a scraper that silently starts returning zero jobs
+// (e.g. a career-site HTML change) is visible instead of hiding inside the
+// aggregate totals. 'ok' = fetched > 0; 'empty' = ran cleanly but found
+// nothing (worth a look if it's a source that normally yields results);
+// 'error' = threw / reported an error; 'skipped' = deliberately not run
+// (e.g. an Apify source with no actor configured).
+type SourceHealthStatus = 'ok' | 'empty' | 'error' | 'skipped';
+
+interface SourceHealth {
+  source: string;
+  fetched: number;
+  new: number;
+  status: SourceHealthStatus;
+  detail: string | null;
+}
 
 interface IngestionRunResult {
   runId: string;
@@ -24,6 +41,7 @@ interface IngestionRunResult {
   jobsRetried: number;
   jobsMatched: number;
   sourcesSkipped: { source: string; reason: string }[];
+  sourceHealth: SourceHealth[];
   errors: { source: string; message: string }[];
 }
 
@@ -79,6 +97,7 @@ export async function runIngestion(
 
   const errors: { source: string; message: string }[] = [];
   const sourcesSkipped: { source: string; reason: string }[] = [];
+  const sourceHealth: SourceHealth[] = [];
   let jobsFetched = 0;
   let jobsNew = 0;
   let jobsMatched = 0;
@@ -93,8 +112,17 @@ export async function runIngestion(
       for (const message of result.errors) {
         errors.push({ source: sourceName, message });
       }
+      sourceHealth.push({
+        source: sourceName,
+        fetched: result.fetched,
+        new: result.newJobIds.length,
+        status: result.errors.length > 0 ? 'error' : result.fetched > 0 ? 'ok' : 'empty',
+        detail: result.errors.length > 0 ? result.errors[0] : null,
+      });
     } catch (error) {
-      errors.push({ source: sourceName, message: (error as Error).message });
+      const message = (error as Error).message;
+      errors.push({ source: sourceName, message });
+      sourceHealth.push({ source: sourceName, fetched: 0, new: 0, status: 'error', detail: message });
     }
   }
 
@@ -107,8 +135,17 @@ export async function runIngestion(
       if (result.skipped && result.reason) {
         sourcesSkipped.push({ source: sourceName, reason: result.reason });
       }
+      sourceHealth.push({
+        source: sourceName,
+        fetched: result.fetched,
+        new: result.newJobIds.length,
+        status: result.skipped ? 'skipped' : result.fetched > 0 ? 'ok' : 'empty',
+        detail: result.skipped ? result.reason ?? null : null,
+      });
     } catch (error) {
-      errors.push({ source: sourceName, message: (error as Error).message });
+      const message = (error as Error).message;
+      errors.push({ source: sourceName, message });
+      sourceHealth.push({ source: sourceName, fetched: 0, new: 0, status: 'error', detail: message });
     }
   }
 
@@ -146,11 +183,11 @@ export async function runIngestion(
   // retries, since a stalled job simply waits one more day rather than never
   // being matched at all.
   const MAX_TOTAL_MATCHES_PER_RUN = 120;
-  const jobIdsToMatch = [...newJobIds, ...stalledJobIds].slice(0, MAX_TOTAL_MATCHES_PER_RUN);
-  // How many of jobIdsToMatch actually came from the stalled sweep, after
-  // the shared cap above — stalledJobIds.length on its own would over-report
-  // if newJobIds alone already used up (or exceeded) the total budget.
-  const stalledRetriedCount = jobIdsToMatch.length - Math.min(newJobIds.length, jobIdsToMatch.length);
+  const { jobIdsToMatch, stalledRetriedCount } = computeMatchBudget(
+    newJobIds,
+    stalledJobIds,
+    MAX_TOTAL_MATCHES_PER_RUN
+  );
 
   const MATCHING_CONCURRENCY = 5;
   for (let i = 0; i < jobIdsToMatch.length; i += MATCHING_CONCURRENCY) {
@@ -177,6 +214,7 @@ export async function runIngestion(
   await runRef.update({
     completedAt: FieldValue.serverTimestamp(),
     sourcesSkipped,
+    sourceHealth,
     jobsFetched,
     jobsNew,
     jobsRetried: stalledRetriedCount,
@@ -204,6 +242,7 @@ export async function runIngestion(
     jobsRetried: stalledRetriedCount,
     jobsMatched,
     sourcesSkipped,
+    sourceHealth,
     errors,
   };
 }

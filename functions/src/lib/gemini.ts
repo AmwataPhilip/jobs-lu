@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
+import { logger } from 'firebase-functions/v2';
 import { EMBEDDING_DIMENSION, EMBEDDING_MODEL } from '../config/embedding';
 
 // Verified live against generativelanguage.googleapis.com on 2026-08-27 —
@@ -6,13 +7,64 @@ import { EMBEDDING_DIMENSION, EMBEDDING_MODEL } from '../config/embedding';
 // current stable fast-tier alias.
 const GENERATION_MODEL = 'gemini-flash-latest';
 
-let client: GoogleGenAI | null = null;
+// Cache clients by API key rather than globally, so a rotated/second key
+// doesn't silently keep using the first client ever constructed.
+const clients = new Map<string, GoogleGenAI>();
 
 function getClient(apiKey: string): GoogleGenAI {
+  let client = clients.get(apiKey);
   if (!client) {
     client = new GoogleGenAI({ apiKey });
+    clients.set(apiKey, client);
   }
   return client;
+}
+
+// Gemini occasionally returns transient 429 (rate limit) / 5xx errors,
+// especially when ingestion fires several calls at once. Without a retry a
+// single blip drops a job to the next day's stalled-retry sweep (a 24h delay
+// for a momentary failure). A small bounded exponential backoff recovers most
+// of these within the same run.
+const MAX_ATTEMPTS = 3;
+const BASE_BACKOFF_MS = 500;
+
+function isRetryableError(error: unknown): boolean {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    message.includes('429') ||
+    message.includes('rate') ||
+    message.includes('quota') ||
+    message.includes('500') ||
+    message.includes('503') ||
+    message.includes('unavailable') ||
+    message.includes('deadline') ||
+    message.includes('timeout') ||
+    message.includes('econnreset') ||
+    message.includes('fetch failed')
+  );
+}
+
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_ATTEMPTS || !isRetryableError(error)) {
+        break;
+      }
+      const delay = BASE_BACKOFF_MS * 2 ** (attempt - 1);
+      logger.warn('Gemini call failed, retrying', {
+        label,
+        attempt,
+        delayMs: delay,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
 }
 
 export interface JobSignals {
@@ -75,16 +127,18 @@ export async function extractJobSignals(
   shortageOccupationTitles: string[]
 ): Promise<JobSignals> {
   const ai = getClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: GENERATION_MODEL,
-    contents: `Job title: ${title}\n\nJob description:\n${rawDescription.slice(0, 8000)}\n\nADEM shortage occupation titles (French):\n${shortageOccupationTitles.map((t) => `- ${t}`).join('\n')}`,
-    config: {
-      systemInstruction:
-        'You extract structured signals from Luxembourg job vacancy postings for a job-matching pipeline. Respond only with the requested JSON.',
-      responseMimeType: 'application/json',
-      responseSchema: JOB_SIGNALS_SCHEMA,
-    },
-  });
+  const response = await withRetry('extractJobSignals', () =>
+    ai.models.generateContent({
+      model: GENERATION_MODEL,
+      contents: `Job title: ${title}\n\nJob description:\n${rawDescription.slice(0, 8000)}\n\nADEM shortage occupation titles (French):\n${shortageOccupationTitles.map((t) => `- ${t}`).join('\n')}`,
+      config: {
+        systemInstruction:
+          'You extract structured signals from Luxembourg job vacancy postings for a job-matching pipeline. Respond only with the requested JSON.',
+        responseMimeType: 'application/json',
+        responseSchema: JOB_SIGNALS_SCHEMA,
+      },
+    })
+  );
 
   const text = response.text;
   if (!text) {
@@ -155,16 +209,18 @@ export async function generateApplication(
   const bulletList = params.cvBullets
     .map((b) => `- [${b.id}] ${b.text}`)
     .join('\n');
-  const response = await ai.models.generateContent({
-    model: GENERATION_MODEL,
-    contents: `Candidate: ${params.candidateName}\n\nJob title: ${params.jobTitle}\nEmployer: ${params.employer}\n\nJob description:\n${params.jobDescription.slice(0, 8000)}\n\nCandidate's available CV bullets:\n${bulletList}`,
-    config: {
-      systemInstruction:
-        'You help a candidate tailor their application to a specific Luxembourg-area job vacancy. Reorder their existing CV bullets by relevance and draft a cover letter. Respond only with the requested JSON.',
-      responseMimeType: 'application/json',
-      responseSchema: APPLICATION_SCHEMA,
-    },
-  });
+  const response = await withRetry('generateApplication', () =>
+    ai.models.generateContent({
+      model: GENERATION_MODEL,
+      contents: `Candidate: ${params.candidateName}\n\nJob title: ${params.jobTitle}\nEmployer: ${params.employer}\n\nJob description:\n${params.jobDescription.slice(0, 8000)}\n\nCandidate's available CV bullets:\n${bulletList}`,
+      config: {
+        systemInstruction:
+          'You help a candidate tailor their application to a specific Luxembourg-area job vacancy. Reorder their existing CV bullets by relevance and draft a cover letter. Respond only with the requested JSON.',
+        responseMimeType: 'application/json',
+        responseSchema: APPLICATION_SCHEMA,
+      },
+    })
+  );
 
   const text = response.text;
   if (!text) {
@@ -195,11 +251,13 @@ export async function embedText(
   text: string
 ): Promise<number[]> {
   const ai = getClient(apiKey);
-  const response = await ai.models.embedContent({
-    model: EMBEDDING_MODEL,
-    contents: text.slice(0, 8000),
-    config: { outputDimensionality: EMBEDDING_DIMENSION },
-  });
+  const response = await withRetry('embedText', () =>
+    ai.models.embedContent({
+      model: EMBEDDING_MODEL,
+      contents: text.slice(0, 8000),
+      config: { outputDimensionality: EMBEDDING_DIMENSION },
+    })
+  );
   const values = response.embeddings?.[0]?.values;
   if (!values) {
     throw new Error('Gemini returned no embedding values');
@@ -260,26 +318,28 @@ export async function extractCvBulletsFromPdf(
   pdfBase64: string
 ): Promise<ExtractedCvBullet[]> {
   const ai = getClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: GENERATION_MODEL,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: 'application/pdf', data: pdfBase64 } },
-          {
-            text: 'Extract every distinct achievement/responsibility bullet point from this CV/resume. For each, identify the employer and date range it belongs to if the CV is structured that way, and 2-5 short skill/role tags. Preserve the language the bullet is originally written in — do not translate.',
-          },
-        ],
+  const response = await withRetry('extractCvBulletsFromPdf', () =>
+    ai.models.generateContent({
+      model: GENERATION_MODEL,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType: 'application/pdf', data: pdfBase64 } },
+            {
+              text: 'Extract every distinct achievement/responsibility bullet point from this CV/resume. For each, identify the employer and date range it belongs to if the CV is structured that way, and 2-5 short skill/role tags. Preserve the language the bullet is originally written in — do not translate.',
+            },
+          ],
+        },
+      ],
+      config: {
+        systemInstruction:
+          'You extract structured CV/resume content for a job-matching pipeline. Only extract what is actually present in the document — never fabricate employers, dates, or achievements. Respond only with the requested JSON.',
+        responseMimeType: 'application/json',
+        responseSchema: CV_EXTRACTION_SCHEMA,
       },
-    ],
-    config: {
-      systemInstruction:
-        'You extract structured CV/resume content for a job-matching pipeline. Only extract what is actually present in the document — never fabricate employers, dates, or achievements. Respond only with the requested JSON.',
-      responseMimeType: 'application/json',
-      responseSchema: CV_EXTRACTION_SCHEMA,
-    },
-  });
+    })
+  );
 
   const text = response.text;
   if (!text) {
@@ -349,16 +409,18 @@ export async function generateTailoredCvContent(
   const bulletList = params.cvBullets
     .map((b) => `- ${b.text}${b.employer ? ` [${b.employer}${b.period ? `, ${b.period}` : ''}]` : ''}`)
     .join('\n');
-  const response = await ai.models.generateContent({
-    model: GENERATION_MODEL,
-    contents: `Candidate: ${params.candidateName}\n\nTarget job: ${params.jobTitle} at ${params.employer}\n\nJob description:\n${params.jobDescription.slice(0, 8000)}\n\nCandidate's full CV bullets:\n${bulletList}\n\nWrite all output in this language: ${params.language}.`,
-    config: {
-      systemInstruction:
-        'You tailor a candidate\'s existing CV content to a specific job for a Luxembourg-area job-application tool. Select and reorder their real bullets by relevance — never invent new achievements. Respond only with the requested JSON.',
-      responseMimeType: 'application/json',
-      responseSchema: TAILORED_CV_SCHEMA,
-    },
-  });
+  const response = await withRetry('generateTailoredCvContent', () =>
+    ai.models.generateContent({
+      model: GENERATION_MODEL,
+      contents: `Candidate: ${params.candidateName}\n\nTarget job: ${params.jobTitle} at ${params.employer}\n\nJob description:\n${params.jobDescription.slice(0, 8000)}\n\nCandidate's full CV bullets:\n${bulletList}\n\nWrite all output in this language: ${params.language}.`,
+      config: {
+        systemInstruction:
+          'You tailor a candidate\'s existing CV content to a specific job for a Luxembourg-area job-application tool. Select and reorder their real bullets by relevance — never invent new achievements. Respond only with the requested JSON.',
+        responseMimeType: 'application/json',
+        responseSchema: TAILORED_CV_SCHEMA,
+      },
+    })
+  );
 
   const text = response.text;
   if (!text) {

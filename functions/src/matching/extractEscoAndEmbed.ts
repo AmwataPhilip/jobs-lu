@@ -4,7 +4,12 @@ import { embedText, extractJobSignals } from '../lib/gemini';
 import { lookupEscoSkillUris } from '../lib/esco';
 import { SHORTAGE_OCCUPATIONS } from '../config/shortageOccupations';
 
-const COLLECTIONS = { Vacancies: 'jobslu_vacancies' };
+const COLLECTIONS = {
+  Vacancies: 'jobslu_vacancies',
+  // Embeddings live off the vacancy doc so clients never download them —
+  // read back by matching/scoreMatch.ts via the Admin SDK only.
+  VacancyEmbeddings: 'jobslu_vacancy_embeddings',
+};
 
 // Reads a vacancy's rawDescription, extracts skill labels + telework signals
 // via Gemini, resolves the skill labels to real ESCO URIs, embeds the job
@@ -47,7 +52,16 @@ export async function extractEscoAndEmbed(
     applicationDeadline: signals.applicationDeadline
       ? Timestamp.fromDate(new Date(signals.applicationDeadline))
       : null,
+    // Clear any inline embedding left over from before it moved off-document
+    // so the client-facing vacancy doc stays lightweight.
+    embedding: FieldValue.delete(),
+  });
+
+  // The embedding itself goes in its own collection, keyed by jobId.
+  await db.collection(COLLECTIONS.VacancyEmbeddings).doc(jobId).set({
+    jobId,
     embedding: FieldValue.vector(embedding),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 
   logger.info('extractEscoAndEmbed complete', {

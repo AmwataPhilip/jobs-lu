@@ -716,6 +716,35 @@
         Retried <span class="num text-paper font-medium">{{ ingestionResult.jobsRetried }}</span> ·
         Matched <span class="num text-paper font-medium">{{ ingestionResult.jobsMatched }}</span>
       </p>
+      <div *ngIf="ingestionResult.sourceHealth?.length" class="pt-2">
+        <p class="text-[11px] uppercase tracking-wide text-paper/40 mb-1.5">Source health</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          <div
+            *ngFor="let s of ingestionResult.sourceHealth"
+            class="flex items-center justify-between gap-2 px-2 py-1 rounded text-[11px] border"
+            [ngClass]="{
+              'border-signal-green/30 bg-signal-green/[0.06]': s.status === 'ok',
+              'border-signal-amber/30 bg-signal-amber/[0.06]': s.status === 'empty',
+              'border-signal-red/30 bg-signal-red/[0.06]': s.status === 'error',
+              'border-paper/10 bg-paper/[0.03]': s.status === 'skipped'
+            }"
+            [title]="s.detail || ''"
+          >
+            <span class="text-paper/70 truncate">{{ s.source }}</span>
+            <span
+              class="num font-medium shrink-0"
+              [ngClass]="{
+                'text-signal-green': s.status === 'ok',
+                'text-signal-amber': s.status === 'empty',
+                'text-signal-red': s.status === 'error',
+                'text-paper/40': s.status === 'skipped'
+              }"
+            >
+              {{ s.status === 'skipped' ? 'skip' : s.status === 'error' ? 'err' : s.fetched }}
+            </span>
+          </div>
+        </div>
+      </div>
       <p *ngFor="let s of ingestionResult.sourcesSkipped" class="text-paper/40 text-xs">
         Skipped {{ s.source }}: {{ s.reason }}
       </p>

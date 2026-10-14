@@ -35,8 +35,11 @@ export interface Persona {
 }
 
 // Spec source: docs/EU WorkMe_ Technical and Product Specification Document.md, Module B.
-// TODO: cvBullets below are illustrative starters — replace with Philip's/Chiara's
-// actual CV content before relying on auto-generated applications (M5).
+// NOTE: this is only the SEED default written to jobslu_personas on first run.
+// CV bullets (and domains/skills/targets) are edited in the admin panel at
+// runtime and read back from Firestore by the application/CV generators — so
+// the cvBullets below are just starter content, not what production relies on.
+// Editing them here has no effect after the collection has been seeded.
 export const PERSONAS: Record<PersonaId, Persona> = {
   philip: {
     personaId: 'philip',
