@@ -1,34 +1,491 @@
 rules_version = '2';
 
-// NOTE: This project (philipamwata-personal) is shared across multiple repos:
-// jobs-lu (EU WorkMe, this app), l-tz-drill, and witram-wed. Firestore only
-// ever has ONE live ruleset for the whole project — whichever repo deploys
-// last replaces it entirely — so this file merges all three repos' rules
-// rather than only scoping to jobslu_*. If you add a new collection for this
-// app, only touch the jobslu_* section below. If another repo's rules change,
-// re-sync this file from that repo before deploying, and vice versa.
+// ===========================================================================
+// SHARED PROJECT (philipamwata-personal). Firestore keeps ONE live ruleset for
+// the whole project — whichever repo deploys last replaces it entirely. The
+// base below (everything except the clearly-marked jobs-lu section near the
+// end) is the Witram household app + gift-registry ruleset, pulled VERBATIM
+// from the live Console on 2026-10-15. jobs-lu only owns the jobslu_* section.
 //
-// Do not deploy this file without confirming it matches (or intentionally
-// updates) whatever is currently live in the Firebase Console.
+// Deploying this file REPLACES the live ruleset, so before any deploy:
+//   * re-pull the live rules and re-sync this base if Witram/registry changed,
+//   * only ever edit the jobslu_* section yourself,
+//   * get a human to confirm the diff in the Console.
+// Do not deploy without that check — a stale base here silently breaks Witram.
+// ===========================================================================
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------------------------------------------------------------------
-    // l-tz-drill — verbatim from that repo's firestore.rules.
-    // Blanket admin bypass: this UID (Philip) may read/write ANY document in
-    // the database. Intentionally broad and un-scoped in the source repo —
-    // preserved as-is here rather than narrowed, to avoid breaking that app.
-    // ---------------------------------------------------------------------
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // Continuity Activation Protocol — a temporary, auditable access escalation (see
+    // docs/roadmap.md). If the logged-in user has an active (non-expired) activation doc,
+    // their effective role is the granted one instead of their stored role. This is the
+    // ONLY place that needs to know about activations — every other rule in this file goes
+    // through hasRole(), so the escalation propagates everywhere automatically.
+    function activationDoc() {
+      return get(/databases/$(database)/documents/continuity_activations/$(request.auth.uid));
+    }
+
+    function hasActiveActivation() {
+      return exists(/databases/$(database)/documents/continuity_activations/$(request.auth.uid))
+        && activationDoc().data.expiresAt > request.time;
+    }
+
+    function effectiveRole() {
+      return hasActiveActivation() ? activationDoc().data.grantedRole : currentUserDoc().data.role;
+    }
+
+    // Custom claims (set by the provisionUser Cloud Function) are checked first and,
+    // being part of the auth token, cost nothing to read — `||` short-circuits, so once
+    // a user has been provisioned through the function, the exists()/get() below (a
+    // billed Firestore read on literally every request in the app, since every rule
+    // above calls hasRole()) never runs for them. Falls back to the original doc lookup
+    // for any account provisioned before this existed, or if a claim is ever missing/stale.
+    function hasRole(role) {
+      return isAuthenticated()
+        && (request.auth.token.role == role
+          || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && effectiveRole() == role));
+    }
+
+    function isAdmin() {
+      return hasRole('ADMIN');
+    }
+
+    function isSpouse() {
+      return hasRole('ADMIN') || hasRole('CO_ADMIN');
+    }
+
+    // Role docs. Written by the provisionUser Cloud Function via the Admin SDK (which
+    // bypasses these rules entirely), or directly by an Admin as a manual fallback —
+    // see docs/admin-provisioning.md. `allow write` here only gates the manual path.
+    match /users/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if isAdmin();
+    }
+
+    // Module 1: Unified Treasury & 70/20/10 Budget Engine
+    match /cash_flows/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /fixed_incomes/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /fixed_expenses/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /spending_transactions/{document} {
+      allow read, write: if isSpouse();
+    }
+    // Household-added expense categories, additive to the built-in list in
+    // transaction.consts.ts — used by both Spending Transactions and Fixed Expenses.
+    match /spending_categories/{document} {
+      allow read, write: if isSpouse();
+    }
+    // One doc per category (built-in key or spending_categories doc id) — a monthly spend target.
+    match /spending_budgets/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /exchange_rates/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /net_worth_snapshots/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Family Values: mission statement, core values, traditions, family story.
+    match /family_mission/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /family_values/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /family_traditions/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /family_history_entries/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Document Vault: sensitive (wills, passports, deeds). Spouses get full
+    // control; an outside Advisor (accountant/lawyer) gets read-only access
+    // to exactly this module plus Estate and Insurance — nothing else.
+    match /document_records/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+
+    // Document folders — pure organizational containers, same access as the documents they hold.
+    match /document_folders/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+
+    // Estate & Succession.
+    match /estate_contacts/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+    match /beneficiary_designations/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+    match /succession_plans/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+
+    // Insurance policies.
+    match /insurance_policies/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+
+    // Household valuables inventory — same access level as Insurance, which it's managed alongside.
+    match /valuable_items/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+
+    // Service provider directory (lawyer, accountant, contractors, etc.) — household-only,
+    // no Advisor read (unlike Insurance/Documents/Estate, this isn't part of that carve-out).
+    match /service_providers/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Audit log — written automatically by every write in the app (see
+    // firestore-crud.util.ts). Any authenticated role can write (so their
+    // own actions get logged); only spouses can read the trail.
+    match /audit_logs/{document} {
+      allow read: if isSpouse();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // "Recently Deleted" trash — written by UndoableDeleteService alongside every
+    // delete. Can hold a snapshot of a record from any module (wealth, estate, etc.),
+    // so spouse-only like the data it's a copy of, not open to every authenticated role.
+    match /deleted_records/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Savings Goals, Investments, Net Worth, Children, Entities — all
+    // household wealth data, Admin/Co-Admin only.
+    match /savings_goals/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /investment_holdings/{document} {
+      allow read, write: if isSpouse();
+    }
+    // One doc per asset class (STOCK/ETF/CRYPTO/BOND) — a target allocation percentage.
+    match /target_allocations/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /assets/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /liabilities/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /liability_payments/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /children/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /child_contributions/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /child_milestones/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /child_allowance_payments/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /entities/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /entity_ownership_stakes/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /entity_transactions/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Private Investments — startup/PE positions with cap-table detail,
+    // documents, contacts, and distributions. Same household-wealth gating as
+    // Investments/Entities above.
+    match /private_investments/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /private_investment_rounds/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /private_investment_distributions/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /private_investment_contacts/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /private_investment_documents/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Growing, user-managed lists (employer, broker, bank, lender, etc.) — shared by
+    // many forms across the app instead of one collection per field. See
+    // managed-list.consts.ts.
+    match /managed_list_entries/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Bank Account mirror. Accounts/transfers are edited directly by spouses; most
+    // postings are only ever written by postRecurringItemsForAllAccounts (Admin SDK,
+    // bypasses these rules) — the one exception, gated below by sourceType, is a
+    // CSV-imported "money in" row, which the client itself creates/deletes.
+    match /accounts/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /account_transfers/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /account_postings/{document} {
+      allow read: if isSpouse();
+      // Every other sourceType (FIXED_INCOME, FIXED_EXPENSE) is generated only by
+      // postRecurringItemsForAllAccounts via the Admin SDK, which bypasses these rules
+      // entirely — the client can never create/update/delete those regardless of this
+      // condition. CSV_IMPORT is the one sourceType the client itself writes (a
+      // bank-ledger CSV import's "money in" rows — see account-detail.component.ts).
+      allow create: if isSpouse() && request.resource.data.sourceType == 'CSV_IMPORT';
+      allow update: if isSpouse() && resource.data.sourceType == 'CSV_IMPORT' && request.resource.data.sourceType == 'CSV_IMPORT';
+      allow delete: if isSpouse() && resource.data.sourceType == 'CSV_IMPORT';
+    }
+
+    // Module 2: Property Evaluator & 25% Mortgage Rule Engine
+    match /properties/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Rental operations ledger — monthly rent/expenses per property, same access as Properties.
+    match /rental_ledger_entries/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Module 3: 10-Year FIRE & Net Worth Accelerator
+    match /fire_snapshots/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Module 4: International Pet Relocation & Medical Passport
+    // Trusted Family (sitters) get read-only access; spouses get full control.
+    match /pets/{document} {
+      allow read: if isSpouse() || hasRole('TRUSTED_FAMILY');
+      allow write: if isSpouse();
+    }
+
+    // Module 5: Kiminini Farm & Compound Security Hub
+    // The Farm Coordinator gets full read/write, scoped to this collection only.
+    match /farm_batches/{document} {
+      allow read, write: if isSpouse() || hasRole('FARM_COORDINATOR');
+    }
+
+    // Wills & Directives — working drafts, spouses only (see docs/feature-plans.md
+    // for the open question on Advisor read access).
+    match /will_documents/{willId} {
+      allow read, write: if isSpouse();
+      match /versions/{versionId} {
+        allow read, write: if isSpouse();
+      }
+    }
+
+    // Family / Stakeholder Meetings
+    match /family_meetings/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Family Health — deliberately spouses-only, tighter than the Advisor-readable
+    // modules above; see docs/feature-plans.md for why this needs its own access tier.
+    match /health_records/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // International Tax Tracking — Advisor gets read access like Documents/Estate/Insurance,
+    // since coordinating with an accountant is a core part of this feature.
+    match /tax_obligations/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+    match /tax_strategies/{document} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse();
+    }
+
+    // Family Memories — spouses only for now (see docs/feature-plans.md for the
+    // open question on broader read access).
+    match /memories/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Investment/property deal-sourcing preferences
+    match /property_preferences/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /investment_preferences/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Sourced deal candidates (review queue) — client reads/writes for accept/discard/
+    // promote; scheduled/triggered Cloud Functions write via the Admin SDK, which
+    // bypasses these rules entirely (no user session to check for those runs).
+    match /sourced_deals/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    match /cars/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Car usage/maintenance history — same access as cars itself.
+    match /car_usage_log/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /car_maintenance_log/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    match /price_history/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    match /tasks/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /plans/{document} {
+      allow read, write: if isSpouse();
+    }
+    // Trip planning sub-records — same access as plans itself.
+    match /trip_itinerary_items/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /trip_bookings/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /trip_packing_items/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /trip_shopping_items/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /trip_wishlist_items/{document} {
+      allow read, write: if isSpouse();
+    }
+    // Plan checklist sub-records (Relocation, Birth, ...) — same access as plans itself.
+    match /plan_checklist_items/{document} {
+      allow read, write: if isSpouse();
+    }
+    // Homeschooling module — compliance, curriculum, and portfolio records, scoped by childId.
+    match /homeschool_authorizations/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /homeschool_inspections/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /homeschool_assessments/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /homeschool_subjects/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /homeschool_portfolio_entries/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /homeschool_curriculum_pathways/{document} {
+      allow read, write: if isSpouse();
+    }
+    // Calendar feed (.ics subscription): one doc (id "household"), holding both the
+    // cached event list the client keeps in sync (see CalendarFeedService) and the
+    // secret token the feed URL is validated against. The icsFeed/regenerateCalendarFeedToken
+    // Cloud Functions read/write this via the Admin SDK (bypasses these rules) — calendar
+    // apps fetch the feed with no Firebase Auth session, so the token (not a role check) is
+    // what actually gates that read.
+    match /calendar_feed_cache/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /risk_register_acknowledgments/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /risk_register_snapshots/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /income_streams/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /income_stream_entries/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /scenarios/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /commitment_devices/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /governance_rules/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /inflation_settings/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /family_loans/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /continuity_activations/{uid} {
+      allow read: if isSpouse() || (isAuthenticated() && request.auth.uid == uid);
+      allow write: if isSpouse();
+    }
+
+    // Careers — employment roles + the job-search pipeline. Spouses only, like the rest of
+    // the Wealth modules.
+    match /career_roles/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /job_applications/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Apps — the household's registry/launcher of its own and third-party apps.
+    match /app_entries/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // Household chores + shopping lists.
+    match /chores/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /shopping_lists/{document} {
+      allow read, write: if isSpouse();
+    }
+    match /shopping_items/{document} {
+      allow read, write: if isSpouse();
+    }
+
+    // This Firestore project is shared with a separate app (a gift/fund registry site) —
+    // the collections below belong to that app, not Witram. Kept isolated from every rule
+    // above; Witram's isSpouse()/isAdmin() continue to mean exactly what they meant before.
+    // Blanket access for that other app's owner across any document, additive to every
+    // Witram-specific rule above (an OR, not a replacement — Chiara's access via isSpouse()
+    // above is unaffected).
     match /{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == "U4nK9OOuVAetWPv0QCV2HRbPaTr2";
     }
 
-    // ---------------------------------------------------------------------
-    // witram-wed — verbatim from that repo's firestore.rules.
-    // ---------------------------------------------------------------------
-
-    // TODO: keep in sync with witram-wed's src/app/consts/admin.consts.ts ADMIN_UIDS.
-    function isWitramWedAdmin() {
+    // TODO: keep in sync with that other app's own admin-UID list.
+    function isRegistryAdmin() {
       return request.auth != null && request.auth.uid in [
         'U4nK9OOuVAetWPv0QCV2HRbPaTr2', // Philip
         // 'chiara-uid-here',
@@ -36,11 +493,11 @@ service cloud.firestore {
     }
 
     // Public registry funds. Guests only ever read these; balances are
-    // mutated server-side (Stripe webhook) or by an authenticated admin
-    // (manual transfer approval).
+    // mutated server-side when a contribution is confirmed, or by an
+    // authenticated admin through the confirmation workflow.
     match /funds/{fundId} {
       allow read: if true;
-      allow write: if isWitramWedAdmin();
+      allow write: if isRegistryAdmin();
     }
 
     // Contains PII (email/phone) and the host-only private message, so
@@ -49,7 +506,7 @@ service cloud.firestore {
     // manual-transfer record for themselves; stripe records are created
     // server-side with the Admin SDK, which bypasses these rules entirely.
     match /contributions/{contributionId} {
-      allow read: if isWitramWedAdmin();
+      allow read: if isRegistryAdmin();
       allow create: if request.resource.data.paymentStatus == 'pending'
         && request.resource.data.paymentMethod in ['mpesa', 'bank_transfer']
         && request.resource.data.fundId is string
@@ -58,7 +515,14 @@ service cloud.firestore {
         && request.resource.data.amount > 0
         && request.resource.data.currency in ['USD', 'EUR', 'KES']
         && (!('isPinnedOnWall' in request.resource.data) || request.resource.data.isPinnedOnWall == false);
-      allow update, delete: if isWitramWedAdmin();
+      allow update, delete: if isRegistryAdmin();
+    }
+
+    // A public-safe, server-written mirror of completed contribution names.
+    // No payment, amount, contact, or message data is exposed here.
+    match /fundDonors/{donorId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // Public-safe mirror of completed contributions' public messages,
@@ -69,15 +533,15 @@ service cloud.firestore {
       // Public feed only sees non-hidden posts; admins can read everything
       // (needed for the moderation tab, which lists hidden posts too so
       // they can be un-hidden).
-      allow read: if resource.data.isHidden == false || isWitramWedAdmin();
-      allow write: if isWitramWedAdmin();
+      allow read: if resource.data.isHidden == false || isRegistryAdmin();
+      allow write: if isRegistryAdmin();
     }
 
     // "Where do you know us from?" world map pins. Guests write their own
     // pin directly (no auth) — kept low-risk by size-capping every field
     // and disallowing self-authored isHidden overrides.
     match /connections/{connectionId} {
-      allow read: if resource.data.isHidden == false || isWitramWedAdmin();
+      allow read: if resource.data.isHidden == false || isRegistryAdmin();
       allow create: if request.resource.data.countryCode is string
         && request.resource.data.countryCode.size() > 0
         && request.resource.data.countryCode.size() <= 8
@@ -87,14 +551,19 @@ service cloud.firestore {
         && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 60))
         && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 200))
         && request.resource.data.isHidden == false;
-      allow update, delete: if isWitramWedAdmin();
+      allow update, delete: if isRegistryAdmin();
     }
 
     // ---------------------------------------------------------------------
-    // jobs-lu / EU WorkMe (this app) — scoped to the jobslu_* prefix.
+    // jobs-lu / EU WorkMe (this app) — scoped to the jobslu_* prefix. ADDED
+    // 2026-10-15, additive to the Witram + registry rules above. Philip
+    // already reaches these via the blanket admin match above (his UID); these
+    // blocks are what grant Chiara (an allowlisted email, not that UID) access
+    // and are the only place jobs-lu collections are opened. Everything not
+    // listed (e.g. jobslu_ingestion_state, jobslu_vacancy_embeddings) is
+    // Admin-SDK-only and stays denied to clients.
+    // Keep this list in sync with functions/src/config/allowlist.ts.
     // ---------------------------------------------------------------------
-
-    // Keep this in sync with functions/src/config/allowlist.ts.
     function isAllowlisted() {
       return request.auth != null &&
         request.auth.token.email in [
@@ -103,18 +572,13 @@ service cloud.firestore {
         ];
     }
 
-    // Vacancies, personas, the shortage-occupation cache, generated
-    // applications, and ingestion run logs are all written exclusively by
-    // Cloud Functions using the Admin SDK, which bypasses these rules —
-    // clients only ever read them.
     match /jobslu_vacancies/{jobId} {
       allow read: if isAllowlisted();
       allow write: if false;
     }
 
     // Embedding vectors, split off the vacancy doc so clients never download
-    // them. Only Cloud Functions (Admin SDK, which bypasses rules) ever touch
-    // these — clients have no reason to read them, so deny both.
+    // them. Only Cloud Functions (Admin SDK, which bypasses rules) touch these.
     match /jobslu_vacancy_embeddings/{jobId} {
       allow read, write: if false;
     }
@@ -139,9 +603,8 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // In-app digest notifications (new matches / approaching deadlines),
-    // written server-side by notifications/sendDigest.ts as a fallback to
-    // email. Clients read them and may mark their own as read (only the
+    // In-app digest notifications. Written server-side by the daily digest
+    // (Admin SDK). Clients read them and may mark their own as read (only the
     // `readAt` field), but never create/delete them.
     match /jobslu_notifications/{notificationId} {
       allow read: if isAllowlisted();
@@ -156,8 +619,9 @@ service cloud.firestore {
       allow write: if isAllowlisted() && request.auth.uid == uid;
     }
 
-    // Everything else (any collection not covered above, in any of the
-    // three repos) is denied by default — Firestore already denies by
-    // default with no matching `allow`, this is just explicit.
+    // Default deny for anything not explicitly opened above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

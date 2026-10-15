@@ -1,48 +1,85 @@
 rules_version = '2';
 
-// NOTE: This project (philipamwata-personal) is shared across multiple repos:
-// jobs-lu (EU WorkMe, this app), l-tz-drill, and witram-wed. Storage only
-// ever has ONE live ruleset for the whole project — whichever repo deploys
-// last replaces it entirely — so this file merges all three repos' rules
-// rather than only scoping to jobslu/. If you add a new path for this app,
-// only touch the jobslu/ section below. If another repo's rules change,
-// re-sync this file from that repo before deploying, and vice versa.
+// ===========================================================================
+// SHARED PROJECT (philipamwata-personal). Storage keeps ONE live ruleset for
+// the whole project — whichever repo deploys last replaces it entirely. The
+// base below (everything except the clearly-marked jobs-lu section) is the
+// Witram household app's Storage ruleset, pulled VERBATIM from the live Console
+// on 2026-10-15. jobs-lu only owns the jobslu/ section.
 //
-// Do not deploy this file without confirming it matches (or intentionally
-// updates) whatever is currently live in the Firebase Console.
+// NOTE: unlike firestore.rules, Storage has NO blanket-admin bypass for any
+// UID — so the jobslu/ rules below are the ONLY thing granting Philip OR Chiara
+// access to CV uploads / generated application files. Deploying this file
+// REPLACES the live ruleset; re-pull live and re-sync this base before any
+// deploy, only edit the jobslu/ section yourself, and get a human to confirm
+// the Console diff first.
+// ===========================================================================
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // -----------------------------------------------------------------
-    // witram-wed — verbatim from that repo's storage.rules.
-    //
-    // NOTE: unlike firestore.rules, the live Storage ruleset (confirmed via
-    // Firebase Console 2026-08-27) does NOT include l-tz-drill's blanket
-    // admin bypass — only this witram-wed block. l-tz-drill's local
-    // storage.rules file has one, but it isn't what's actually deployed, so
-    // it's intentionally left out here to match live reality. If that
-    // changes, re-sync from whatever's live, not from the repo file alone.
-    // -----------------------------------------------------------------
-
-    // TODO: keep in sync with witram-wed's src/app/consts/admin.consts.ts ADMIN_UIDS.
-    function isWitramWedAdmin() {
-      return request.auth != null && request.auth.uid in [
-        'U4nK9OOuVAetWPv0QCV2HRbPaTr2', // Philip
-        // 'chiara-uid-here',
-      ];
+    // Same custom-claims-first fast path as firestore.rules' hasRole() — see the
+    // comment there. Storage rules can't call the Firestore version directly (cross-
+    // service rules can only use `firestore.get`/`firestore.exists`, not call into
+    // another ruleset's functions), so the short-circuit is duplicated here.
+    function hasRole(role) {
+      return request.auth != null
+        && (request.auth.token.role == role
+          || (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+            && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == role));
     }
 
-    // Hero banners, couple photos, fund images — public read, admin upload only.
-    match /media/{allPaths=**} {
-      allow read: if true;
-      allow write: if isWitramWedAdmin();
+    function isSpouse() {
+      return hasRole('ADMIN') || hasRole('CO_ADMIN');
     }
 
-    // -----------------------------------------------------------------
-    // jobs-lu / EU WorkMe (this app) — scoped to the jobslu/ prefix.
-    // -----------------------------------------------------------------
+    // Document Vault uploads. Mirrors the document_records Firestore rule:
+    // spouses get full control, an Advisor gets read-only. Capped at 25MB —
+    // generous for scanned wills/deeds/passports without allowing arbitrary
+    // large uploads.
+    match /documents/{documentId}/{fileName} {
+      allow read: if isSpouse() || hasRole('ADVISOR');
+      allow write: if isSpouse() && request.resource.size < 25 * 1024 * 1024;
+    }
 
-    // Keep this in sync with functions/src/config/allowlist.ts.
+    // Family Memories uploads. Mirrors the memories Firestore rule (spouses only for
+    // now). Photos are downscaled client-side before upload (see image-resize.util.ts)
+    // so 20MB is already generous headroom; videos aren't compressed client-side, so
+    // this is the real cost guardrail — 200MB is enough for a few minutes of phone
+    // video without letting one upload blow through the Storage/egress budget. Content
+    // type is restricted to image/video: this path has no other legitimate use.
+    match /memories/{memoryId}/{fileName} {
+      allow read: if isSpouse();
+      allow write: if isSpouse()
+        && ((request.resource.contentType.matches('image/.*') && request.resource.size < 20 * 1024 * 1024)
+          || (request.resource.contentType.matches('video/.*') && request.resource.size < 200 * 1024 * 1024));
+    }
+
+    // Private Investment documents (cap tables, SAFE/note agreements, board decks).
+    // Mirrors the document_records rule's size cap, but no Advisor read access — these
+    // are deal-confidential, unlike the household Document Vault.
+    match /private-investments/{investmentId}/{fileName} {
+      allow read: if isSpouse();
+      allow write: if isSpouse() && request.resource.size < 25 * 1024 * 1024;
+    }
+
+    // Valuables inventory photos — one photo per item, downscaled client-side before
+    // upload same as Memories, so the 20MB cap is generous headroom rather than the
+    // real guardrail. Advisor gets Firestore read access to valuable_items but not to
+    // these photo files, mirroring how private-investments documents are read-only to
+    // spouses only despite the parent record having broader read rules elsewhere.
+    match /valuables/{itemId}/{fileName} {
+      allow read: if isSpouse();
+      allow write: if isSpouse()
+        && request.resource.contentType.matches('image/.*') && request.resource.size < 20 * 1024 * 1024;
+    }
+
+    // ---------------------------------------------------------------------
+    // jobs-lu / EU WorkMe (this app) — scoped to the jobslu/ prefix. ADDED
+    // 2026-10-15, additive to the Witram rules above. There is no blanket-admin
+    // bypass in Storage, so these isAllowlisted() rules are the ONLY grant for
+    // jobs-lu files (both Philip and Chiara). Keep the email list in sync with
+    // functions/src/config/allowlist.ts.
+    // ---------------------------------------------------------------------
     function isAllowlisted() {
       return request.auth != null &&
         request.auth.token.email in [
@@ -70,8 +107,9 @@ service firebase.storage {
         && request.resource.contentType == 'application/pdf';
     }
 
-    // Everything else (any path not covered above, in any of the three
-    // repos) is denied by default — Storage already denies by default with
-    // no matching `allow`, this is just explicit.
+    // Default deny for anything not explicitly opened above.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }
